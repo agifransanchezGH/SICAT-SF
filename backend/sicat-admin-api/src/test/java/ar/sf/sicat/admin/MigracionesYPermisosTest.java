@@ -1,7 +1,5 @@
 package ar.sf.sicat.admin;
 
-import static ar.sf.sicat.admin.BaseDeDatosPrueba.ADMIN_PASS;
-import static ar.sf.sicat.admin.BaseDeDatosPrueba.ADMIN_USER;
 import static ar.sf.sicat.admin.BaseDeDatosPrueba.POSTGIS;
 import static ar.sf.sicat.admin.BaseDeDatosPrueba.PUBLIC_PASS;
 import static ar.sf.sicat.admin.BaseDeDatosPrueba.PUBLIC_USER;
@@ -14,39 +12,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
 import ar.sf.sicat.core.seguridad.RolRepository;
 
 /**
- * Levanta la API Admin contra PostGIS real:
  * Flyway aplica V1..Vn, Hibernate valida el mapeo (ddl-auto=validate) y se verifican los permisos
- * de sicat_public_ro. Se omite si no hay Docker.
+ * de sicat_public_ro sobre la base real.
  */
-@SpringBootTest
-@Testcontainers(disabledWithoutDocker = true)
-class MigracionesYPermisosTest {
-
-    @BeforeAll
-    static void iniciar() {
-        POSTGIS.start();
-    }
-
-    @DynamicPropertySource
-    static void propiedades(DynamicPropertyRegistry r) {
-        r.add("spring.datasource.url", POSTGIS::getJdbcUrl);
-        r.add("spring.datasource.username", () -> ADMIN_USER);
-        r.add("spring.datasource.password", () -> ADMIN_PASS);
-        r.add("spring.flyway.placeholders.publicUser", () -> PUBLIC_USER);
-    }
+class MigracionesYPermisosTest extends PruebaIntegracion {
 
     @Autowired
     JdbcTemplate jdbc;

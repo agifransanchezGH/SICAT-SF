@@ -1,12 +1,14 @@
 import { Routes } from '@angular/router';
 
-import { rolGuard } from './core/rol.guard';
+import { authGuard, rolGuard } from './core/rol.guard';
 import { Shell } from './layout/shell';
 
 export const routes: Routes = [
+  { path: 'login', loadComponent: () => import('./login/login.page').then((m) => m.LoginPage) },
   {
     path: '',
     component: Shell,
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'establecimientos' },
       { path: 'oferentes', loadComponent: () => import('./oferentes/oferentes.page').then((m) => m.OferentesPage) },
@@ -23,4 +25,5 @@ export const routes: Routes = [
       },
     ],
   },
+  { path: '**', redirectTo: '' },
 ];

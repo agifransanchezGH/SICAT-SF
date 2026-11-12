@@ -28,6 +28,12 @@ sicat:
   jwt:
     secret: ${SICAT_JWT_SECRET:cambiar-por-un-secreto-largo-de-al-menos-32-caracteres}
     expiracion-minutos: ${SICAT_JWT_EXPIRACION_MINUTOS:60}
+    refresh-expiracion-dias: ${SICAT_JWT_REFRESH_EXPIRACION_DIAS:7}
+  # Primer ADMIN: se crea solo si la tabla de usuarios está vacía (ADR 0005)
+  admin-inicial:
+    email: ${SICAT_ADMIN_INICIAL_EMAIL:}
+    password: ${SICAT_ADMIN_INICIAL_PASSWORD:}
+    nombre: ${SICAT_ADMIN_INICIAL_NOMBRE:Administrador}
   cors:
     origenes: ${SICAT_ADMIN_CORS:http://localhost:4200}
 

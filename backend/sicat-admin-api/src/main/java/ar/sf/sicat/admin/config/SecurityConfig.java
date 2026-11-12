@@ -16,9 +16,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,10 +30,14 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
+
+import ar.sf.sicat.admin.seguridad.TokenService;
+
 /**
- * Todo /api/admin/v1/** requiere JWT, salvo /auth/login. Roles en el claim {@code roles}
- * (ADMIN, CARGADOR, CONSULTA) mapeados a ROLE_*. Usar {@code @PreAuthorize} en los controllers.
- * El emisor del token (login) se implementa en el paquete {@code seguridad} (paso 3).
+ * Todo /api/admin/v1/** requiere un access token, salvo /auth/login y /auth/refresh.
+ * Roles en el claim {@code roles} (ADMIN, CARGADOR, CONSULTA) mapeados a ROLE_*;
+ * en los controllers se usa {@code @PreAuthorize}.
  */
 @Configuration
 @EnableMethodSecurity
@@ -44,7 +52,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(API + "/auth/login").permitAll()
+                        .requestMatchers(API + "/auth/login", API + "/auth/refresh").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
                         .anyRequest().authenticated())
@@ -58,8 +66,18 @@ public class SecurityConfig {
     }
 
     @Bean
+    JwtEncoder jwtEncoder(SecretKey jwtKey) {
+        return new NimbusJwtEncoder(new ImmutableSecret<>(jwtKey));
+    }
+
+    /** Decoder del resource server: solo acepta access tokens (un refresh token no sirve para llamar a la API). */
+    @Bean
     JwtDecoder jwtDecoder(SecretKey jwtKey) {
-        return NimbusJwtDecoder.withSecretKey(jwtKey).macAlgorithm(MacAlgorithm.HS256).build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtKey).macAlgorithm(MacAlgorithm.HS256).build();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+                JwtValidators.createDefaultWithIssuer(TokenService.EMISOR),
+                TokenService.validadorTipo(TokenService.TIPO_ACCESS)));
+        return decoder;
     }
 
     @Bean

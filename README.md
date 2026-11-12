@@ -28,6 +28,8 @@ docker compose up -d --build
 
 La API Admin ejecuta las migraciones Flyway al arrancar; la API Pública arranca después y solo lee el esquema `publico`.
 
+**Primer ingreso:** si la base no tiene usuarios, la API Admin crea un ADMIN con `SICAT_ADMIN_INICIAL_EMAIL` y `SICAT_ADMIN_INICIAL_PASSWORD` del `.env`. Con esos datos se entra al front admin o se prueba en Swagger (`POST /auth/login`, y luego **Authorize** con el `accessToken`).
+
 ## Desarrollo local
 
 Base de datos sola:
