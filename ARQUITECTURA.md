@@ -304,8 +304,10 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Auditoría (solo lectura)
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| GET | `/auditoria` | Filtros: `tabla`, `clave`, `usuario`, `accion`, `origen`, `desde`, `hasta` | ADMIN |
-| GET | `/auditoria/{tabla}/{clave}` | Historial de un registro | ADMIN, CARGADOR |
+| GET | `/auditoria` | Paginado. Filtros: `tabla` (con o sin esquema), `clave`, `usuario` (id), `accion`, `origen`, `desde`, `hasta` (`yyyy-MM-dd`, hora de Argentina) | ADMIN |
+| GET | `/auditoria/{tabla}/{clave}` | Historial de un registro, del más reciente al más antiguo | ADMIN, CARGADOR |
+
+Qué se registra y cómo: ver `docs/decisiones/0006-auditoria-con-eventos-de-hibernate.md`. Los cambios hechos con SQL directo no se auditan.
 
 ## 9. Endpoints: API Pública (`/api/public/v1`)
 
@@ -353,7 +355,7 @@ Formato de la ficha:
 1. **Base** ✅: `infra/postgres/init` (roles) + migraciones Flyway del modelo en `sicat-core`.
 2. **Core** ✅: entidades, repositorios y utilidades geo.
 3. **Admin API – seguridad** ✅: login, JWT, roles, usuarios (+ login en el front admin).
-4. **Admin API – auditoría**: listener y tabla, antes de los ABM para que todo quede registrado.
+4. **Admin API – auditoría** ✅: listener y tabla, antes de los ABM para que todo quede registrado.
 5. **Admin API – ABM**: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones.
 6. **Publicación**: estados y validaciones.
 7. **Vistas públicas** (revisar la propuesta de `V8`) + **API Pública** con caché y rate limit.
