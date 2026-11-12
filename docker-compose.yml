@@ -1,0 +1,109 @@
+# Entorno local de SICAT SF. Requiere .env (copiar de .env.example).
+#   docker compose up -d --build     # todo
+#   docker compose up -d db          # solo la base, para desarrollar las APIs desde el IDE
+#
+# La zona pública (api-public, front-public) está en su propia red y solo llega a la base,
+# nunca a la API Admin.
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SICAT_ADMIN_DB_USER: ${SICAT_ADMIN_DB_USER}
+      SICAT_ADMIN_DB_PASSWORD: ${SICAT_ADMIN_DB_PASSWORD}
+      SICAT_PUBLIC_DB_USER: ${SICAT_PUBLIC_DB_USER}
+      SICAT_PUBLIC_DB_PASSWORD: ${SICAT_PUBLIC_DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # Se monta solo el script (no la carpeta) para no tapar 10_postgis.sh de la imagen
+      - ./infra/postgres/init/20_roles.sh:/docker-entrypoint-initdb.d/20_roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [interna, publica]
+
+  api-admin:
+    build:
+      context: ./backend
+      args:
+        MODULE: sicat-admin-api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      SICAT_ADMIN_DB_USER: ${SICAT_ADMIN_DB_USER}
+      SICAT_ADMIN_DB_PASSWORD: ${SICAT_ADMIN_DB_PASSWORD}
+      SICAT_PUBLIC_DB_USER: ${SICAT_PUBLIC_DB_USER}
+      SICAT_JWT_SECRET: ${SICAT_JWT_SECRET}
+      SICAT_JWT_EXPIRACION_MINUTOS: ${SICAT_JWT_EXPIRACION_MINUTOS}
+      SICAT_ADMIN_CORS: ${SICAT_ADMIN_CORS}
+      API_ADMIN_PORT: 8081
+    ports:
+      - "${API_ADMIN_PORT}:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8081' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [interna]
+
+  api-public:
+    build:
+      context: ./backend
+      args:
+        MODULE: sicat-public-api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      SICAT_PUBLIC_DB_USER: ${SICAT_PUBLIC_DB_USER}
+      SICAT_PUBLIC_DB_PASSWORD: ${SICAT_PUBLIC_DB_PASSWORD}
+      SICAT_PUBLIC_CORS: ${SICAT_PUBLIC_CORS}
+      API_PUBLIC_PORT: 8082
+    ports:
+      - "${API_PUBLIC_PORT}:8082"
+    depends_on:
+      api-admin:
+        condition: service_healthy   # las migraciones (y las vistas) ya están aplicadas
+    networks: [publica]
+
+  front-admin:
+    build:
+      context: ./frontend
+      args:
+        APP: admin
+    environment:
+      API_UPSTREAM: http://api-admin:8081
+    ports:
+      - "${FRONT_ADMIN_PORT}:80"
+    depends_on: [api-admin]
+    networks: [interna]
+
+  front-public:
+    build:
+      context: ./frontend
+      args:
+        APP: public
+    environment:
+      API_UPSTREAM: http://api-public:8082
+    ports:
+      - "${FRONT_PUBLIC_PORT}:80"
+    depends_on: [api-public]
+    networks: [publica]
+
+networks:
+  interna:
+  publica:
+
+volumes:
+  db-data:

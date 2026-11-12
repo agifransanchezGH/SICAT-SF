@@ -1,0 +1,42 @@
+server:
+  port: ${API_ADMIN_PORT:8081}
+
+spring:
+  application:
+    name: sicat-admin-api
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:sicat}
+    username: ${SICAT_ADMIN_DB_USER:sicat_admin_rw}
+    password: ${SICAT_ADMIN_DB_PASSWORD:cambiar-admin}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate          # el esquema lo maneja Flyway; Hibernate solo valida
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true                 # SOLO la API Admin ejecuta migraciones
+    locations: classpath:db/migration
+    default-schema: sicat
+    schemas: sicat,seguridad,auditoria,publico
+    placeholders:
+      publicUser: ${SICAT_PUBLIC_DB_USER:sicat_public_ro}
+
+sicat:
+  jwt:
+    secret: ${SICAT_JWT_SECRET:cambiar-por-un-secreto-largo-de-al-menos-32-caracteres}
+    expiracion-minutos: ${SICAT_JWT_EXPIRACION_MINUTOS:60}
+  cors:
+    origenes: ${SICAT_ADMIN_CORS:http://localhost:4200}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
