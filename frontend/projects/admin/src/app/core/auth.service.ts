@@ -1,32 +1,104 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable, finalize, map, shareReplay, tap } from 'rxjs';
+import { API_URL } from 'shared';
 
 export type Rol = 'ADMIN' | 'CARGADOR' | 'CONSULTA';
 
-/** Guarda el JWT de la sesión. El login real se implementa junto con /auth/login (paso 3). */
+export interface UsuarioSesion {
+  id: number;
+  nombreCompleto: string;
+  email: string;
+  rol: Rol;
+}
+
+/** Respuesta de /auth/login y /auth/refresh. */
+interface SesionRespuesta {
+  accessToken: string;
+  refreshToken: string;
+  tipo: string;
+  expiraEn: number;
+  usuario: UsuarioSesion;
+}
+
+interface Sesion {
+  accessToken: string;
+  refreshToken: string;
+  usuario: UsuarioSesion;
+}
+
+const CLAVE = 'sicat.sesion';
+
+/**
+ * Sesión del panel: guarda access y refresh token en sessionStorage (se pierde al cerrar la pestaña).
+ * La renovación la dispara authInterceptor ante un 401.
+ */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly token = signal<string | null>(sessionStorage.getItem('sicat.token'));
-  private readonly roles = signal<Rol[]>([]);
+  private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
+  private readonly api = inject(API_URL);
 
-  readonly autenticado = computed(() => this.token() !== null);
+  private readonly sesion = signal<Sesion | null>(leerSesion());
+  private renovacionEnCurso: Observable<string> | null = null;
+
+  readonly usuario = computed(() => this.sesion()?.usuario ?? null);
+  readonly autenticado = computed(() => this.sesion() !== null);
 
   obtenerToken(): string | null {
-    return this.token();
+    return this.sesion()?.accessToken ?? null;
   }
 
   tieneRol(...roles: Rol[]): boolean {
-    return this.roles().some((r) => roles.includes(r));
+    const rol = this.usuario()?.rol;
+    return rol !== undefined && roles.includes(rol);
   }
 
-  iniciarSesion(token: string, roles: Rol[]): void {
-    sessionStorage.setItem('sicat.token', token);
-    this.token.set(token);
-    this.roles.set(roles);
+  iniciarSesion(email: string, password: string): Observable<UsuarioSesion> {
+    return this.http
+      .post<SesionRespuesta>(`${this.api}/auth/login`, { email, password })
+      .pipe(
+        tap((r) => this.guardar(r)),
+        map((r) => r.usuario),
+      );
+  }
+
+  /** Pide un access token nuevo con el refresh token. Comparte el pedido si ya hay uno en curso. */
+  renovar(): Observable<string> {
+    const refreshToken = this.sesion()?.refreshToken;
+    if (!refreshToken) {
+      throw new Error('No hay sesión para renovar');
+    }
+    this.renovacionEnCurso ??= this.http
+      .post<SesionRespuesta>(`${this.api}/auth/refresh`, { refreshToken })
+      .pipe(
+        tap((r) => this.guardar(r)),
+        map((r) => r.accessToken),
+        finalize(() => (this.renovacionEnCurso = null)),
+        shareReplay(1),
+      );
+    return this.renovacionEnCurso;
   }
 
   cerrarSesion(): void {
-    sessionStorage.removeItem('sicat.token');
-    this.token.set(null);
-    this.roles.set([]);
+    sessionStorage.removeItem(CLAVE);
+    this.sesion.set(null);
+    this.router.navigate(['/login']);
+  }
+
+  private guardar(r: SesionRespuesta): void {
+    const sesion: Sesion = { accessToken: r.accessToken, refreshToken: r.refreshToken, usuario: r.usuario };
+    sessionStorage.setItem(CLAVE, JSON.stringify(sesion));
+    this.sesion.set(sesion);
+  }
+}
+
+function leerSesion(): Sesion | null {
+  try {
+    const crudo = sessionStorage.getItem(CLAVE);
+    return crudo ? (JSON.parse(crudo) as Sesion) : null;
+  } catch {
+    return null;
   }
 }

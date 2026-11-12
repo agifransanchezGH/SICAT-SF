@@ -198,13 +198,15 @@ Publicación: `establecimiento.estado_publicacion` (`BORRADOR`, `PUBLICADO`, `OC
 ### Autenticación y usuarios
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| POST | `/auth/login` | Devuelve JWT y refresh token | público |
-| POST | `/auth/refresh` | Renueva el JWT | autenticado |
-| GET | `/auth/me` | Usuario y roles actuales | autenticado |
-| GET | `/usuarios` | Lista usuarios | ADMIN |
-| POST | `/usuarios` | Crea usuario | ADMIN |
-| PUT | `/usuarios/{id}` | Modifica usuario y rol | ADMIN |
-| PATCH | `/usuarios/{id}/estado` | Activa/desactiva | ADMIN |
+| POST | `/auth/login` | `{ email, password }` → `{ accessToken, refreshToken, tipo, expiraEn, usuario }` | público |
+| POST | `/auth/refresh` | `{ refreshToken }` → misma respuesta que login | con refresh token |
+| GET | `/auth/me` | Usuario y rol actuales | autenticado |
+| GET | `/usuarios` | Lista usuarios (paginado) | ADMIN |
+| POST | `/usuarios` | Crea usuario (email repetido → 409) | ADMIN |
+| PUT | `/usuarios/{id}` | Modifica usuario y rol; `password` opcional | ADMIN |
+| PATCH | `/usuarios/{id}/estado` | `{ activo }` Activa/desactiva | ADMIN |
+
+Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-token-y-admin-inicial.md`.
 
 ### Catálogos
 `{nombre}` ∈ `tipo-oferente`, `tipo-canal`, `tipo-lugar`, `localidad`, `distincion`, `caracteristica`.
@@ -350,7 +352,7 @@ Formato de la ficha:
 
 1. **Base** ✅: `infra/postgres/init` (roles) + migraciones Flyway del modelo en `sicat-core`.
 2. **Core** ✅: entidades, repositorios y utilidades geo.
-3. **Admin API – seguridad**: login, JWT, roles, usuarios.
+3. **Admin API – seguridad** ✅: login, JWT, roles, usuarios (+ login en el front admin).
 4. **Admin API – auditoría**: listener y tabla, antes de los ABM para que todo quede registrado.
 5. **Admin API – ABM**: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones.
 6. **Publicación**: estados y validaciones.

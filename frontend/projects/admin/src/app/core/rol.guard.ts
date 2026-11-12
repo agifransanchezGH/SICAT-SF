@@ -1,12 +1,16 @@
-import { CanActivateFn } from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 
 import { AuthService, Rol } from './auth.service';
 
-/** Uso: canActivate: [rolGuard('ADMIN')]. Mientras no exista el login, deja pasar. */
+/** Exige sesión iniciada; si no hay, redirige a /login conservando la ruta pedida. */
+export const authGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  return auth.autenticado() || inject(Router).createUrlTree(['/login'], { queryParams: { volver: state.url } });
+};
+
+/** Uso: canActivate: [rolGuard('ADMIN')]. Sin el rol, vuelve al inicio del panel. */
 export const rolGuard =
   (...roles: Rol[]): CanActivateFn =>
-  () => {
-    const auth = inject(AuthService);
-    return !auth.autenticado() || auth.tieneRol(...roles);
-  };
+  () =>
+    inject(AuthService).tieneRol(...roles) || inject(Router).createUrlTree(['/']);
