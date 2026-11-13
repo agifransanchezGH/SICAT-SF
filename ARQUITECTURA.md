@@ -195,6 +195,14 @@ Publicación: `establecimiento.estado_publicacion` (`BORRADOR`, `PUBLICADO`, `OC
 
 ## 8. Endpoints: API Admin (`/api/admin/v1`)
 
+Convenciones de los ABM (detalle en `docs/decisiones/0007-convenciones-abm.md`):
+
+- **Bajas lógicas** (`DELETE` → `activo = false`) en catálogos, categorías, oferentes, establecimientos, ofertas y salones. Los listados omiten inactivos salvo `?incluirInactivos=true`; un `PUT` con `"activo": true` reactiva.
+- **Bajas físicas** solo en lugares (409 si está en uso) y visitas guiadas (junto con sus horarios).
+- **`PUT` de listas** (contactos, referentes, horarios, distinciones, características, paradas, categorías): reemplazan la lista completa. Ítems con `id` se modifican, sin `id` se crean y los que no vienen se eliminan.
+- **`bbox`** = `minLng,minLat,maxLng,maxLat`. **Geometrías** en GeoJSON (`[lng, lat]`).
+- Filtro **`categoria`** de establecimientos: incluye subcategorías y categorías adicionales de ofertas activas.
+
 ### Autenticación y usuarios
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
@@ -356,7 +364,7 @@ Formato de la ficha:
 2. **Core** ✅: entidades, repositorios y utilidades geo.
 3. **Admin API – seguridad** ✅: login, JWT, roles, usuarios (+ login en el front admin).
 4. **Admin API – auditoría** ✅: listener y tabla, antes de los ABM para que todo quede registrado.
-5. **Admin API – ABM**: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones.
+5. **Admin API – ABM** ✅: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones. (Quedan para su paso: publicar/despublicar → 6, duplicados → 8, mapa → 10.)
 6. **Publicación**: estados y validaciones.
 7. **Vistas públicas** (revisar la propuesta de `V8`) + **API Pública** con caché y rate limit.
 8. **Importación** desde Excel (validación, duplicados, ejecución).
