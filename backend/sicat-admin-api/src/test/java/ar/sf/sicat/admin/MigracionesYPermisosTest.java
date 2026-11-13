@@ -51,18 +51,22 @@ class MigracionesYPermisosTest extends PruebaIntegracion {
                 INSERT INTO sicat.lugar (nombre, punto)
                 VALUES ('Costanera', public.ST_GeogFromText('SRID=4326;POINT(-60.70 -31.63)'))
                 RETURNING id_lugar""", Long.class);
-        jdbc.update("""
+        Long publicado = jdbc.queryForObject("""
                 INSERT INTO sicat.establecimiento (id_oferente, id_lugar, nombre, estado_publicacion)
-                VALUES (?, ?, 'Publicado', 'PUBLICADO'), (?, ?, 'Borrador', 'BORRADOR')""",
-                oferente, lugar, oferente, lugar);
+                VALUES (?, ?, 'Publicado', 'PUBLICADO') RETURNING id_establecimiento""", Long.class, oferente, lugar);
+        Long borrador = jdbc.queryForObject("""
+                INSERT INTO sicat.establecimiento (id_oferente, id_lugar, nombre, estado_publicacion)
+                VALUES (?, ?, 'Borrador', 'BORRADOR') RETURNING id_establecimiento""", Long.class, oferente, lugar);
 
-        // La API Admin puede usar consultas geográficas
-        assertThat(establecimientos.buscarCercanos(-31.63, -60.70, 100)).hasSize(2);
+        // La API Admin puede usar consultas geográficas (la base es compartida con otros tests)
+        assertThat(establecimientos.buscarCercanos(-31.63, -60.70, 100))
+                .extracting(e -> e.getId()).contains(publicado, borrador);
 
         try (Connection ro = DriverManager.getConnection(POSTGIS.getJdbcUrl(), PUBLIC_USER, PUBLIC_PASS);
              Statement st = ro.createStatement()) {
 
-            try (ResultSet rs = st.executeQuery("SELECT nombre, lat, lng FROM publico.v_establecimiento_publico")) {
+            try (ResultSet rs = st.executeQuery("SELECT nombre, lat, lng FROM publico.v_establecimiento_publico "
+                    + "WHERE id_oferente = " + oferente)) {
                 assertThat(rs.next()).isTrue();
                 assertThat(rs.getString("nombre")).isEqualTo("Publicado");
                 assertThat(rs.getDouble("lat")).isEqualTo(-31.63);

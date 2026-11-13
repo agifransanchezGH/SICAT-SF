@@ -1,5 +1,8 @@
 package ar.sf.sicat.admin.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -9,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import ar.sf.sicat.core.comun.ConflictoException;
+import ar.sf.sicat.core.comun.DatoInvalidoException;
 import ar.sf.sicat.core.comun.EntidadNoEncontradaException;
 import ar.sf.sicat.core.comun.ReglaNegocioException;
 
@@ -19,6 +23,8 @@ import ar.sf.sicat.core.comun.ReglaNegocioException;
  */
 @RestControllerAdvice
 public class ManejadorErrores extends ResponseEntityExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ManejadorErrores.class);
 
     @ExceptionHandler(EntidadNoEncontradaException.class)
     ProblemDetail noEncontrado(EntidadNoEncontradaException ex) {
@@ -33,6 +39,19 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConflictoException.class)
     ProblemDetail conflicto(ConflictoException ex) {
         return problema(HttpStatus.CONFLICT, "Conflicto", ex.getMessage());
+    }
+
+    @ExceptionHandler(DatoInvalidoException.class)
+    ProblemDetail datoInvalido(DatoInvalidoException ex) {
+        return problema(HttpStatus.BAD_REQUEST, "Dato inválido", ex.getMessage());
+    }
+
+    /** Red de seguridad: una restricción de la base (única, FK, CHECK) que no validó el servicio. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    ProblemDetail integridad(DataIntegrityViolationException ex) {
+        log.warn("Restricción de integridad: {}", ex.getMostSpecificCause().getMessage());
+        return problema(HttpStatus.CONFLICT, "Conflicto de datos",
+                "La operación viola una restricción de la base de datos (registro duplicado o referenciado).");
     }
 
     /** Login o refresh fallidos (lanzados desde los servicios de seguridad). */
