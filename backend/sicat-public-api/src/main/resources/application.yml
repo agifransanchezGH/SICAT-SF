@@ -14,10 +14,8 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
-    properties:
-      hibernate:
-        jdbc:
-          time_zone: UTC
+    # Sin hibernate.jdbc.time_zone: correría los campos `time` (horarios) según la zona de la JVM.
+    # Los timestamptz (OffsetDateTime) ya se guardan con su zona.
   flyway:
     enabled: false                # NUNCA ejecuta migraciones
   cache:
