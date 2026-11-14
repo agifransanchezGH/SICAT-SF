@@ -328,7 +328,7 @@ Qué se registra y cómo: ver `docs/decisiones/0006-auditoria-con-eventos-de-hib
 
 ## 9. Endpoints: API Pública (`/api/public/v1`)
 
-Solo `GET`. Sin autenticación. Caché de 5 minutos (un cambio de publicación puede tardar hasta 5 minutos en verse) y 120 pedidos por minuto por IP. Detalle en `docs/decisiones/0009-api-publica.md`.
+Solo `GET`. Sin autenticación. Caché en memoria que se vacía apenas cambia algo en `sicat` (aviso de PostgreSQL, ADR 0014; vencimiento de 5 minutos como respaldo) y 120 pedidos por minuto por IP. Detalle en `docs/decisiones/0009-api-publica.md`.
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -390,5 +390,6 @@ Formato de la ficha:
 - No agregar dependencias del módulo público hacia el admin.
 - Nombres de dominio en español; código de infraestructura en inglés técnico estándar.
 - Cada endpoint nuevo necesita su DTO, validaciones (`jakarta.validation`), documentación OpenAPI y al menos un test.
+- Toda tabla nueva en `sicat` lleva el trigger `avisar_cambio` en su migración (ADR 0014); si no, sus cambios tardan hasta 5 minutos en verse en el sitio público.
 - Un campo nuevo se vuelve público solo si se agrega **explícitamente** a la vista correspondiente.
 - Ante una duda de diseño no cubierta aquí, preguntar antes de decidir.
