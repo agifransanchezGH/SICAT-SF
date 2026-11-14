@@ -33,6 +33,8 @@ public class Registro {
     public String categoria;
     public String subcategoria;
     public String descripcion;
+    /** Preguntas de la encuesta y datos internos (no salen en el sitio público). */
+    public String notasInternas;
     public String estadoFuncionamiento;
     public String acceso;
     public String visitaGuiada;
@@ -56,7 +58,11 @@ public class Registro {
             return;
         }
         String parte = etiqueta == null ? texto.trim() : etiqueta + ": " + texto.trim();
-        descripcion = descripcion == null ? parte : descripcion + "\n\n" + parte;
+        if (ar.sf.sicat.admin.importacion.Internos.etiquetaInterna(etiqueta)) {
+            notasInternas = notasInternas == null ? parte : notasInternas + "\n\n" + parte;
+        } else {
+            descripcion = descripcion == null ? parte : descripcion + "\n\n" + parte;
+        }
     }
 
     public void agregarCaracteristica(String grupo, String nombre, Integer cantidad) {

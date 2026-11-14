@@ -180,6 +180,7 @@ export class EstablecimientoPage {
       lugarId: e.lugar?.id ?? null,
       nombre: e.nombre,
       descripcion: e.descripcion,
+      notasInternas: e.notasInternas,
       anioInauguracion: e.anioInauguracion,
       estadoFuncionamiento: e.estadoFuncionamiento,
       motivoEstado: e.motivoEstado,

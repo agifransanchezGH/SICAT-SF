@@ -77,6 +77,10 @@ class EndpointsPublicosTest extends PruebaPublica {
                 .andExpect(jsonPath("$.contactos[?(@.valor == '@hotelnandu')].uso").value("Reservas"))
                 .andExpect(jsonPath("$.caracteristicas[0].grupo").value("Capacidad"))
                 .andExpect(jsonPath("$.caracteristicas[0].cantidad").value(40))
+                // ADR 0015: las características internas y las notas internas no salen
+                .andExpect(jsonPath("$.caracteristicas.length()").value(2))
+                .andExpect(jsonPath("$.caracteristicas[*].nombre", not(hasItem("Booking"))))
+                .andExpect(jsonPath("$.notasInternas").doesNotExist())
                 .andExpect(jsonPath("$.distinciones[0].anio").value(2024))
                 .andExpect(jsonPath("$.ofertas[0].categoria").value("Hotel"))
                 .andExpect(jsonPath("$.ofertas[0].categoriasAdicionales[0]").value("Salones de eventos"))

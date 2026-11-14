@@ -13,9 +13,10 @@ public record CatalogoItemDto(
         @Schema(description = "Solo localidad") String provincia,
         @Schema(description = "Solo distincion") String organismoOtorgante,
         @Schema(description = "Solo caracteristica") String grupo,
-        @Schema(description = "Solo caracteristica") Boolean admiteCantidad) {
+        @Schema(description = "Solo caracteristica") Boolean admiteCantidad,
+        @Schema(description = "Solo caracteristica: false = de uso interno, no sale en el sitio público") Boolean esPublica) {
 
     public static CatalogoItemDto simple(Long id, String nombre, Boolean activo) {
-        return new CatalogoItemDto(id, nombre, activo, null, null, null, null);
+        return new CatalogoItemDto(id, nombre, activo, null, null, null, null, null);
     }
 }

@@ -11,6 +11,7 @@ public record EstablecimientoDto(
         Long id,
         String nombre,
         String descripcion,
+        @io.swagger.v3.oas.annotations.media.Schema(description = "Solo para el panel; no sale en el sitio público") String notasInternas,
         Short anioInauguracion,
         String estadoFuncionamiento,
         String motivoEstado,

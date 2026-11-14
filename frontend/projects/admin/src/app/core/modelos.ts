@@ -31,6 +31,8 @@ export interface CatalogoItem {
   organismoOtorgante?: string;
   grupo?: string;
   admiteCantidad?: boolean;
+  /** Solo caracteristica: false = de uso interno, no sale en el sitio público. */
+  esPublica?: boolean;
 }
 
 export interface CategoriaNodo {
@@ -59,6 +61,7 @@ export interface Establecimiento {
   id: number;
   nombre: string;
   descripcion: string | null;
+  notasInternas: string | null;
   anioInauguracion: number | null;
   estadoFuncionamiento: string | null;
   motivoEstado: string | null;

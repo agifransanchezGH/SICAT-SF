@@ -156,6 +156,7 @@ public class EstablecimientoService {
         e.setLugar(buscarOpcional(lugares, s.lugarId(), "Lugar"));
         e.setNombre(s.nombre().trim());
         e.setDescripcion(texto(s.descripcion()));
+        e.setNotasInternas(texto(s.notasInternas()));
         e.setAnioInauguracion(s.anioInauguracion());
         e.setEstadoFuncionamiento(texto(s.estadoFuncionamiento()));
         e.setMotivoEstado(texto(s.motivoEstado()));
@@ -190,7 +191,7 @@ public class EstablecimientoService {
                         .map(o -> new EstablecimientoDto.OfertaRef(o.getId(), o.getCategoria().getId(),
                                 o.getCategoria().getNombre(), Boolean.TRUE.equals(o.getActivo())))
                         .toList();
-        return new EstablecimientoDto(e.getId(), e.getNombre(), e.getDescripcion(), e.getAnioInauguracion(),
+        return new EstablecimientoDto(e.getId(), e.getNombre(), e.getDescripcion(), e.getNotasInternas(), e.getAnioInauguracion(),
                 e.getEstadoFuncionamiento(), e.getMotivoEstado(), e.getFechaReapertura(), e.getEstadoPublicacion(),
                 Boolean.TRUE.equals(e.getDestacado()), Boolean.TRUE.equals(e.getActivo()),
                 new EstablecimientoDto.Ref(e.getOferente().getId(), e.getOferente().getNombre()),

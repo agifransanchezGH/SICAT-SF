@@ -51,6 +51,7 @@ import { CatalogoItem } from '../core/modelos';
               @if (actual() === 'caracteristica') {
                 <mat-form-field><mat-label>Grupo</mat-label><input matInput formControlName="grupo" placeholder="Servicios, Accesibilidad…" /></mat-form-field>
                 <mat-checkbox formControlName="admiteCantidad">Admite cantidad</mat-checkbox>
+                <mat-checkbox formControlName="esPublica">Se muestra en el sitio</mat-checkbox>
               }
               <button mat-flat-button type="submit" [disabled]="form.invalid">{{ editando() ? 'Guardar' : 'Agregar' }}</button>
               @if (editando()) { <button mat-button type="button" (click)="cancelar()">Cancelar</button> }
@@ -63,7 +64,8 @@ import { CatalogoItem } from '../core/modelos';
             </ng-container>
             <ng-container matColumnDef="extra">
               <th mat-header-cell *matHeaderCellDef>{{ extraTitulo() }}</th>
-              <td mat-cell *matCellDef="let i">{{ i.provincia ?? i.organismoOtorgante ?? i.grupo ?? '' }}{{ i.admiteCantidad ? ' · con cantidad' : '' }}</td>
+              <td mat-cell *matCellDef="let i">{{ i.provincia ?? i.organismoOtorgante ?? i.grupo ?? '' }}{{ i.admiteCantidad ? ' · con cantidad' : '' }}
+                @if (i.esPublica === false) { <span class="estado AUTOMATICO">Interna</span> }</td>
             </ng-container>
             <ng-container matColumnDef="acciones">
               <th mat-header-cell *matHeaderCellDef></th>
@@ -120,6 +122,7 @@ export class CatalogosPage {
     organismoOtorgante: [''],
     grupo: [''],
     admiteCantidad: [false],
+    esPublica: [true],
   });
 
   constructor() {
@@ -147,6 +150,7 @@ export class CatalogosPage {
       organismoOtorgante: i.organismoOtorgante ?? '',
       grupo: i.grupo ?? '',
       admiteCantidad: i.admiteCantidad ?? false,
+      esPublica: i.esPublica ?? true,
     });
   }
 
@@ -164,6 +168,7 @@ export class CatalogosPage {
       organismoOtorgante: n === 'distincion' ? f.organismoOtorgante || null : null,
       grupo: n === 'caracteristica' ? f.grupo || null : null,
       admiteCantidad: n === 'caracteristica' ? f.admiteCantidad : null,
+      esPublica: n === 'caracteristica' ? f.esPublica : null,
       activo,
     };
   }
