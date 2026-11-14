@@ -1,7 +1,15 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { API_URL, EstablecimientoFicha, EstablecimientoResumen, Pagina } from 'shared';
+import { Observable, shareReplay } from 'rxjs';
+import { API_URL, CategoriaPublica, EstablecimientoFicha, EstablecimientoResumen, LocalidadPublica, Pagina } from 'shared';
+
+export interface FiltrosListado {
+  q?: string | null;
+  categoria?: number | string | null;
+  localidad?: number | string | null;
+  page?: number;
+  size?: number;
+}
 
 /** Cliente de la API Pública (solo GET). */
 @Injectable({ providedIn: 'root' })
@@ -9,13 +17,30 @@ export class ApiPublicaService {
   private readonly http = inject(HttpClient);
   private readonly api = inject(API_URL);
 
-  listar(filtros: Record<string, string | number> = {}): Observable<Pagina<EstablecimientoResumen>> {
-    return this.http.get<Pagina<EstablecimientoResumen>>(`${this.api}/establecimientos`, {
-      params: new HttpParams({ fromObject: filtros }),
-    });
+  private categorias$?: Observable<CategoriaPublica[]>;
+  private localidades$?: Observable<LocalidadPublica[]>;
+
+  listar(filtros: FiltrosListado = {}): Observable<Pagina<EstablecimientoResumen>> {
+    let params = new HttpParams();
+    for (const [clave, valor] of Object.entries(filtros)) {
+      if (valor !== null && valor !== undefined && valor !== '') {
+        params = params.set(clave, String(valor));
+      }
+    }
+    return this.http.get<Pagina<EstablecimientoResumen>>(`${this.api}/establecimientos`, { params });
   }
 
   ficha(id: number): Observable<EstablecimientoFicha> {
     return this.http.get<EstablecimientoFicha>(`${this.api}/establecimientos/${id}`);
+  }
+
+  categorias(): Observable<CategoriaPublica[]> {
+    this.categorias$ ??= this.http.get<CategoriaPublica[]>(`${this.api}/categorias`).pipe(shareReplay(1));
+    return this.categorias$;
+  }
+
+  localidades(): Observable<LocalidadPublica[]> {
+    this.localidades$ ??= this.http.get<LocalidadPublica[]>(`${this.api}/localidades`).pipe(shareReplay(1));
+    return this.localidades$;
   }
 }

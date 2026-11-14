@@ -1,11 +1,14 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
-/** Placeholder: Establecimientos y circuitos publicados (Leaflet + OpenStreetMap). */
+/** Mapa de establecimientos y circuitos publicados (Leaflet + OpenStreetMap): llega en el paso 10. */
 @Component({
   selector: 'app-mapa-page',
+  imports: [RouterLink],
   template: `
-    <h1>Mapa</h1>
-    <p>Establecimientos y circuitos publicados (Leaflet + OpenStreetMap).</p>
+    <div class="contenido">
+      <p class="tarjeta vacio">El mapa llega pronto. Mientras tanto, <a routerLink="/">buscá en el listado</a>.</p>
+    </div>
   `,
 })
 export class MapaPage {}

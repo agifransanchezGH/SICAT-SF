@@ -378,7 +378,7 @@ Formato de la ficha:
 6. **Publicación** ✅: estados y validaciones (requisitos en `docs/decisiones/0008-requisitos-de-publicacion.md`).
 7. **Vistas públicas** + **API Pública** ✅ con caché y rate limit (campos públicos revisados; `V9` agrega la vista de búsqueda).
 8. **Importación** desde Excel ✅ (validación, duplicados, ejecución y geocodificación con revisión manual).
-9. **Frontend admin** ✅ (ABM, filtros, publicación, ubicaciones a revisar, importación; ver `docs/decisiones/0011-frontend-admin.md`) y **frontend público** (listado, ficha).
+9. **Frontend admin** ✅ (ABM, filtros, publicación, ubicaciones a revisar, importación; ver `docs/decisiones/0011-frontend-admin.md`) y **frontend público** ✅ (listado con buscador y filtros, ficha; ver `docs/decisiones/0012-frontend-publico.md`).
 10. **Mapa** (admin y público).
 11. **Etapa 2** (fuera de alcance): rol `OFERENTE`.
 
