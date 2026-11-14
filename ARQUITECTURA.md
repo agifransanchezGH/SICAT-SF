@@ -303,9 +303,9 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Mapa
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| GET | `/mapa/establecimientos` | GeoJSON con filtros `categoria`, `estado`, `bbox` | todos |
-| GET | `/mapa/establecimientos/cercanos` | Por `lat`, `lng`, `radioMetros` | todos |
-| GET | `/mapa/circuitos` | Trazados de circuitos (GeoJSON) | todos |
+| GET | `/mapa/establecimientos` | GeoJSON (puntos) de los activos, incluidos borradores y ocultos. Filtros `q`, `categoria`, `estado`, `localidadId`, `bbox` | todos |
+| GET | `/mapa/establecimientos/cercanos` | Por `lat`, `lng`, `radioMetros` (máx. 20000) y `limite` (máx. 200); propiedad `distanciaMetros` | todos |
+| GET | `/mapa/circuitos` | Trazados de circuitos (GeoJSON, líneas) con sus paradas | todos |
 
 ### Importación (migración desde Excel)
 | Método | Ruta | Descripción | Rol |
@@ -379,7 +379,7 @@ Formato de la ficha:
 7. **Vistas públicas** + **API Pública** ✅ con caché y rate limit (campos públicos revisados; `V9` agrega la vista de búsqueda).
 8. **Importación** desde Excel ✅ (validación, duplicados, ejecución y geocodificación con revisión manual).
 9. **Frontend admin** ✅ (ABM, filtros, publicación, ubicaciones a revisar, importación; ver `docs/decisiones/0011-frontend-admin.md`) y **frontend público** ✅ (listado con buscador y filtros, ficha; ver `docs/decisiones/0012-frontend-publico.md`).
-10. **Mapa** (admin y público).
+10. **Mapa** ✅ (admin y público; ver `docs/decisiones/0013-mapa.md`).
 11. **Etapa 2** (fuera de alcance): rol `OFERENTE`.
 
 ## 11. Reglas para Claude Code

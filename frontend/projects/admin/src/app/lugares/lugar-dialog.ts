@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, NgZone, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,11 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { ESTADOS_GEO, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
+import * as L from 'leaflet';
+import { SANTA_FE, SicatMapa, iconoPin } from 'shared';
+
+/** 6 decimales: unos 10 cm, de sobra para ubicar una puerta. */
+const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
 
 /**
  * Alta y edición de un lugar. Las coordenadas se cargan a mano por ahora (el mapa llega en el paso 10):
@@ -19,7 +24,7 @@ import { SelectorRemoto } from '../core/selector-remoto';
  */
 @Component({
   selector: 'app-lugar-dialog',
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, SelectorRemoto],
+  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, SelectorRemoto, SicatMapa],
   template: `
     <h2 mat-dialog-title>{{ lugar ? 'Editar lugar' : 'Nuevo lugar' }}</h2>
     <mat-dialog-content>
@@ -82,12 +87,10 @@ import { SelectorRemoto } from '../core/selector-remoto';
           </mat-select>
           <mat-hint>Para publicar tiene que estar "Verificado"</mat-hint>
         </mat-form-field>
-        @if (lugar?.coordenadas) {
-          <p class="ancho-completo suave">
-            <a [href]="'https://www.openstreetmap.org/?mlat=' + lugar!.coordenadas!.lat + '&mlon=' + lugar!.coordenadas!.lng + '#map=18/' + lugar!.coordenadas!.lat + '/' + lugar!.coordenadas!.lng"
-               target="_blank" rel="noopener">Ver la ubicación actual en OpenStreetMap</a>
-          </p>
-        }
+        <div class="ancho-completo">
+          <p class="suave ayuda-mapa">Tocá el mapa o arrastrá el pin para marcar la ubicación exacta.</p>
+          <sicat-mapa class="mapa" [centro]="centroInicial" [zoom]="lugar?.coordenadas ? 17 : 13" (listo)="alListo($event)" />
+        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -101,6 +104,8 @@ import { SelectorRemoto } from '../core/selector-remoto';
   styles: `
     .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; padding-top: 4px; }
     .ancho-completo { grid-column: 1 / -1; }
+    .ayuda-mapa { margin: 4px 0 6px; font-size: 13px; }
+    .mapa { height: 280px; border-radius: 8px; overflow: hidden; border: 1px solid var(--sicat-borde); }
   `,
 })
 export class LugarDialog {
@@ -108,6 +113,7 @@ export class LugarDialog {
   private readonly avisos = inject(Avisos);
   private readonly ref = inject(MatDialogRef<LugarDialog, Lugar>);
   private readonly catalogos = inject(Catalogos);
+  private readonly zona = inject(NgZone);
   protected readonly lugar = inject<Lugar | null>(MAT_DIALOG_DATA);
 
   protected readonly tipos = toSignal(this.catalogos.de('tipo-lugar'), { initialValue: [] });
@@ -131,11 +137,48 @@ export class LugarDialog {
     estadoGeo: [(this.l?.estadoGeo ?? null) as string | null],
   });
 
+  protected readonly centroInicial: L.LatLngTuple = this.l?.coordenadas
+    ? [this.l.coordenadas.lat, this.l.coordenadas.lng]
+    : SANTA_FE;
+  private pin?: L.Marker;
+
   constructor() {
-    // Coordenadas escritas por una persona: se dan por verificadas.
-    const marcar = () => this.form.controls.estadoGeo.setValue('VERIFICADO');
+    // Coordenadas escritas o marcadas por una persona: se dan por verificadas.
+    const marcar = () => {
+      this.form.controls.estadoGeo.setValue('VERIFICADO');
+      this.moverPin();
+    };
     this.form.controls.lat.valueChanges.subscribe(marcar);
     this.form.controls.lng.valueChanges.subscribe(marcar);
+  }
+
+  protected alListo(m: L.Map): void {
+    this.pin = L.marker(this.centroInicial, { icon: iconoPin(), draggable: true, autoPan: true });
+    if (this.l?.coordenadas) {
+      this.pin.addTo(m);
+    }
+    const fijar = (p: L.LatLng) =>
+      this.zona.run(() => this.form.patchValue({ lat: redondear(p.lat), lng: redondear(p.lng) }));
+    this.pin.on('dragend', () => fijar(this.pin!.getLatLng()));
+    m.on('click', (e: L.LeafletMouseEvent) => {
+      this.pin!.setLatLng(e.latlng).addTo(m);
+      fijar(e.latlng);
+    });
+    this.mapa = m;
+  }
+
+  private mapa?: L.Map;
+
+  /** Cuando se escriben las coordenadas a mano, el pin las sigue. */
+  private moverPin(): void {
+    const { lat, lng } = this.form.getRawValue();
+    if (this.pin && this.mapa && lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+      const actual = this.pin.getLatLng();
+      if (actual.lat !== lat || actual.lng !== lng || !this.mapa.hasLayer(this.pin)) {
+        this.pin.setLatLng([lat, lng]).addTo(this.mapa);
+        this.mapa.panTo([lat, lng]);
+      }
+    }
   }
 
   protected verificar(): void {

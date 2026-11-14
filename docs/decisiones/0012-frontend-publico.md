@@ -16,4 +16,4 @@ Segunda parte del paso 9: el sitio público (listado y ficha) sobre la API Públ
 ## Consecuencias
 - Para probar se publicaron 5 establecimientos reales cuya ubicación automática coincidía exactamente con OpenStreetMap: Convento San Francisco, Museo Etnográfico, Museo Rosa Galisteo, Hostal Santa Fe de la Vera Cruz y Catedral Metropolitana.
 - Se ve en lo publicado que la importación dejó en la descripción respuestas de la encuesta y que hay grupos de características de uso interno (p. ej. "Plataformas de venta", "Uso de redes sociales") que hoy salen en la ficha. Queda para revisar.
-- Paso 10: mapa en ambos sitios.
+- Los mapas quedaron en ADR 0013.

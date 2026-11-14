@@ -68,6 +68,13 @@ public class EstablecimientoService {
     public PaginaDto<EstablecimientoResumenDto> listar(String q, Long categoria, EstadoPublicacion estado,
                                                        Long oferenteId, Long localidadId, String bbox,
                                                        boolean incluirInactivos, Pageable pageable) {
+        return PaginaDto.de(establecimientos.findAll(
+                filtro(q, categoria, estado, oferenteId, localidadId, bbox, incluirInactivos), pageable), this::resumen);
+    }
+
+    /** Filtro del listado; también lo usa el mapa del panel. */
+    public Specification<Establecimiento> filtro(String q, Long categoria, EstadoPublicacion estado, Long oferenteId,
+                                                 Long localidadId, String bbox, boolean incluirInactivos) {
         Bbox caja = Bbox.parse(bbox);
         List<Long> enCaja = caja == null ? null
                 : establecimientos.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
@@ -104,7 +111,7 @@ public class EstablecimientoService {
             }
             return cb.and(p.toArray(Predicate[]::new));
         };
-        return PaginaDto.de(establecimientos.findAll(spec, pageable), this::resumen);
+        return spec;
     }
 
     @Transactional(readOnly = true)

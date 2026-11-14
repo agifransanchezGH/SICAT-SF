@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, input, signal, viewChild } from '@angular/core';
+import { Component, NgZone, OnInit, inject, input, signal, viewChild } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,11 +9,15 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Circuito, Parada } from '../core/modelos';
 import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
+import * as L from 'leaflet';
+import { SicatMapa } from 'shared';
 
-/** Circuito turístico: punto de partida, duración y paradas (establecimientos en orden). El trazado se dibuja en el mapa (paso 10). */
+const round = (n: number) => Math.round(n * 1e6) / 1e6;
+
+/** Circuito turístico: punto de partida, duración y paradas (establecimientos en orden). El recorrido se dibuja tocando el mapa. */
 @Component({
   selector: 'app-circuito-form',
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, SelectorRemoto],
+  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, SelectorRemoto, SicatMapa],
   template: `
     <form class="formulario" [formGroup]="form" (ngSubmit)="guardar()">
       <app-selector-remoto formControlName="lugarPartidaId" ruta="/lugares" etiqueta="Lugar de partida" [textoInicial]="circuito()?.lugarPartida" />
@@ -21,9 +25,18 @@ import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
         <mat-label>Duración (minutos)</mat-label>
         <input matInput type="number" min="1" formControlName="duracionMin" />
       </mat-form-field>
-      @if (circuito()?.trazado) {
-        <p class="ancho-completo suave">Tiene un trazado cargado. Se va a poder ver y editar en el mapa.</p>
-      }
+      <div class="ancho-completo">
+        <div class="cabecera-mapa">
+          <strong>Recorrido</strong>
+          <span class="suave">{{ vertices().length }} puntos{{ editable() ? ' · tocá el mapa para agregar puntos en orden' : '' }}</span>
+          <span class="espacio"></span>
+          @if (editable()) {
+            <button mat-button type="button" [disabled]="!vertices().length" (click)="deshacer()"><mat-icon>undo</mat-icon> Deshacer</button>
+            <button mat-button type="button" [disabled]="!vertices().length" (click)="borrarTrazado()"><mat-icon>delete</mat-icon> Borrar</button>
+          }
+        </div>
+        <sicat-mapa class="mapa" (listo)="alListo($event)" />
+      </div>
       @if (editable()) {
         <div class="ancho-completo botones">
           <button mat-flat-button type="submit" [disabled]="form.invalid || form.pristine || guardando()">Guardar circuito</button>
@@ -58,6 +71,8 @@ import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
   `,
   styles: `
     .botones { display: flex; justify-content: flex-end; }
+    .cabecera-mapa { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+    .mapa { height: 340px; border-radius: 8px; overflow: hidden; border: 1px solid var(--sicat-borde); }
     .paradas { padding: 0 16px 16px; }
     h3 { font: var(--mat-sys-title-medium); margin: 8px 0; }
     ol { margin: 0; padding-left: 24px; }
@@ -71,6 +86,7 @@ import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
 export class CircuitoForm implements OnInit {
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
+  private readonly zona = inject(NgZone);
 
   readonly ofertaId = input.required<number>();
   readonly circuito = input<Circuito | undefined>();
@@ -80,6 +96,60 @@ export class CircuitoForm implements OnInit {
   protected readonly guardando = signal(false);
   protected readonly paradas = signal<Parada[]>([]);
   protected readonly paradasCambiadas = signal(false);
+
+  /** Vértices del recorrido como [lat, lng] (GeoJSON los guarda al revés: [lng, lat]). */
+  protected readonly vertices = signal<L.LatLngTuple[]>([]);
+  private linea?: L.Polyline;
+  private puntosLinea = L.layerGroup();
+  private mapa?: L.Map;
+
+  protected alListo(m: L.Map): void {
+    this.mapa = m;
+    const t = this.circuito()?.trazado as GeoJSON.LineString | null | undefined;
+    this.vertices.set((t?.coordinates ?? []).map(([lng, lat]) => [lat, lng] as L.LatLngTuple));
+    this.linea = L.polyline([], { color: '#7b1fa2', weight: 4 }).addTo(m);
+    this.puntosLinea.addTo(m);
+    this.redibujar();
+    if (this.vertices().length > 1) {
+      m.fitBounds(this.linea.getBounds(), { padding: [30, 30] });
+    }
+    if (this.editable()) {
+      m.on('click', (e: L.LeafletMouseEvent) =>
+        this.zona.run(() => this.cambiarVertices([...this.vertices(), [round(e.latlng.lat), round(e.latlng.lng)]])),
+      );
+    }
+  }
+
+  protected deshacer(): void {
+    this.cambiarVertices(this.vertices().slice(0, -1));
+  }
+
+  protected borrarTrazado(): void {
+    this.cambiarVertices([]);
+  }
+
+  private cambiarVertices(v: L.LatLngTuple[]): void {
+    this.vertices.set(v);
+    this.form.markAsDirty();
+    this.redibujar();
+  }
+
+  private redibujar(): void {
+    const v = this.vertices();
+    this.linea?.setLatLngs(v);
+    this.puntosLinea.clearLayers();
+    v.forEach((p, i) =>
+      L.circleMarker(p, {
+        radius: i === 0 ? 7 : 4,
+        color: '#7b1fa2',
+        fillColor: i === 0 ? '#7b1fa2' : '#fff',
+        fillOpacity: 1,
+        weight: 2,
+      })
+        .bindTooltip(i === 0 ? 'Inicio' : `Punto ${i + 1}`)
+        .addTo(this.puntosLinea),
+    );
+  }
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     lugarPartidaId: [null as number | null],
@@ -104,7 +174,13 @@ export class CircuitoForm implements OnInit {
 
   protected guardar(): void {
     this.guardando.set(true);
-    const cuerpo = { ...this.form.getRawValue(), trazado: this.circuito()?.trazado ?? null };
+    const v = this.vertices();
+    if (v.length === 1) {
+      this.avisos.ok('El recorrido necesita al menos dos puntos');
+      return;
+    }
+    const trazado = v.length ? { type: 'LineString', coordinates: v.map(([lat, lng]) => [lng, lat]) } : null;
+    const cuerpo = { ...this.form.getRawValue(), trazado };
     this.api.put<Circuito>(`/ofertas/${this.ofertaId()}/circuito`, cuerpo).subscribe({
       next: () => {
         this.guardando.set(false);

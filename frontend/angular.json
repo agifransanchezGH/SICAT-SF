@@ -35,6 +35,9 @@
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
               "projects/admin/src/styles.scss"
+            ],
+            "allowedCommonJsDependencies": [
+              "leaflet"
             ]
           },
           "configurations": {
@@ -131,6 +134,9 @@
             "styles": [
               "node_modules/leaflet/dist/leaflet.css",
               "projects/public/src/styles.scss"
+            ],
+            "allowedCommonJsDependencies": [
+              "leaflet"
             ]
           },
           "configurations": {
