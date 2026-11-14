@@ -20,6 +20,7 @@ import ar.sf.sicat.admin.catalogo.CategoriaService;
 import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoDto;
 import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoResumenDto;
 import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoSolicitud;
+import ar.sf.sicat.admin.publicacion.PublicacionService;
 import ar.sf.sicat.core.comun.Bbox;
 import ar.sf.sicat.core.comun.Geo;
 import ar.sf.sicat.core.comun.PaginaDto;
@@ -46,14 +47,17 @@ public class EstablecimientoService {
     private final LugarRepository lugares;
     private final OfertaRepository ofertas;
     private final CategoriaService categorias;
+    private final PublicacionService publicacion;
 
     public EstablecimientoService(EstablecimientoRepository establecimientos, OferenteRepository oferentes,
-                                  LugarRepository lugares, OfertaRepository ofertas, CategoriaService categorias) {
+                                  LugarRepository lugares, OfertaRepository ofertas, CategoriaService categorias,
+                                  PublicacionService publicacion) {
         this.establecimientos = establecimientos;
         this.oferentes = oferentes;
         this.lugares = lugares;
         this.ofertas = ofertas;
         this.categorias = categorias;
+        this.publicacion = publicacion;
     }
 
     /**
@@ -124,14 +128,20 @@ public class EstablecimientoService {
         aplicar(e, s);
         if (s.activo() != null) {
             e.setActivo(s.activo());
+            if (!s.activo()) {
+                PublicacionService.ocultarSiEstaPublicado(e);
+            }
         }
+        publicacion.verificarPublicado(e);
         return dto(e);
     }
 
-    /** Baja lógica: deja de aparecer en listados y en el sitio público. */
+    /** Baja lógica: deja de aparecer en listados y, si estaba publicado, pasa a OCULTO. */
     @Transactional
     public void darDeBaja(Long id) {
-        buscar(establecimientos, id, "Establecimiento").setActivo(false);
+        Establecimiento e = buscar(establecimientos, id, "Establecimiento");
+        e.setActivo(false);
+        PublicacionService.ocultarSiEstaPublicado(e);
     }
 
     private void aplicar(Establecimiento e, EstablecimientoSolicitud s) {

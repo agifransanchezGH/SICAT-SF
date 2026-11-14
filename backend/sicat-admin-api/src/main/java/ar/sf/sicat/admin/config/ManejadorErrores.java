@@ -33,7 +33,11 @@ public class ManejadorErrores extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ReglaNegocioException.class)
     ProblemDetail reglaNegocio(ReglaNegocioException ex) {
-        return problema(HttpStatus.UNPROCESSABLE_ENTITY, "Regla de negocio", ex.getMessage());
+        ProblemDetail pd = problema(HttpStatus.UNPROCESSABLE_ENTITY, "Regla de negocio", ex.getMessage());
+        if (!ex.getErrores().isEmpty()) {
+            pd.setProperty("errores", ex.getErrores());
+        }
+        return pd;
     }
 
     @ExceptionHandler(ConflictoException.class)

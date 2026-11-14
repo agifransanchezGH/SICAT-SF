@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ar.sf.sicat.admin.lugar.dto.LugarDto;
 import ar.sf.sicat.admin.lugar.dto.LugarSolicitud;
+import ar.sf.sicat.admin.publicacion.PublicacionService;
 import ar.sf.sicat.core.comun.Bbox;
 import ar.sf.sicat.core.comun.ConflictoException;
 import ar.sf.sicat.core.comun.Geo;
@@ -36,14 +37,17 @@ public class LugarService {
     private final LocalidadRepository localidades;
     private final EstablecimientoRepository establecimientos;
     private final CircuitoRepository circuitos;
+    private final PublicacionService publicacion;
 
     public LugarService(LugarRepository lugares, TipoLugarRepository tipos, LocalidadRepository localidades,
-                        EstablecimientoRepository establecimientos, CircuitoRepository circuitos) {
+                        EstablecimientoRepository establecimientos, CircuitoRepository circuitos,
+                        PublicacionService publicacion) {
         this.lugares = lugares;
         this.tipos = tipos;
         this.localidades = localidades;
         this.establecimientos = establecimientos;
         this.circuitos = circuitos;
+        this.publicacion = publicacion;
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +96,7 @@ public class LugarService {
     public LugarDto modificar(Long id, LugarSolicitud s) {
         Lugar l = buscar(lugares, id, "Lugar");
         aplicar(l, s);
+        publicacion.verificarPublicados(establecimientos.findByLugarId(id));
         return dto(l, true);
     }
 

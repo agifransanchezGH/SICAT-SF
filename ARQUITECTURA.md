@@ -255,8 +255,9 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | POST | `/establecimientos` | Crea | ADMIN, CARGADOR |
 | PUT | `/establecimientos/{id}` | Modifica | ADMIN, CARGADOR |
 | DELETE | `/establecimientos/{id}` | Baja lógica | ADMIN |
-| POST | `/establecimientos/{id}/publicar` | Pasa a `PUBLICADO` (valida datos mínimos) | ADMIN, CARGADOR |
-| POST | `/establecimientos/{id}/despublicar` | Pasa a `OCULTO` | ADMIN, CARGADOR |
+| GET | `/establecimientos/{id}/publicacion` | Estado y requisitos que faltan para publicar | todos |
+| POST | `/establecimientos/{id}/publicar` | Pasa a `PUBLICADO` si cumple los requisitos (422 con `errores` si no) | ADMIN, CARGADOR |
+| POST | `/establecimientos/{id}/despublicar` | Pasa a `OCULTO` (422 si está en `BORRADOR`) | ADMIN, CARGADOR |
 | GET | `/establecimientos/duplicados` | Posibles duplicados para resolver antes de migrar | ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/contactos` | Canales de contacto (PUT reemplaza) | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/referentes` | Referentes | todos / ADMIN, CARGADOR |
@@ -365,7 +366,7 @@ Formato de la ficha:
 3. **Admin API – seguridad** ✅: login, JWT, roles, usuarios (+ login en el front admin).
 4. **Admin API – auditoría** ✅: listener y tabla, antes de los ABM para que todo quede registrado.
 5. **Admin API – ABM** ✅: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones. (Quedan para su paso: publicar/despublicar → 6, duplicados → 8, mapa → 10.)
-6. **Publicación**: estados y validaciones.
+6. **Publicación** ✅: estados y validaciones (requisitos en `docs/decisiones/0008-requisitos-de-publicacion.md`).
 7. **Vistas públicas** (revisar la propuesta de `V8`) + **API Pública** con caché y rate limit.
 8. **Importación** desde Excel (validación, duplicados, ejecución).
 9. **Frontend admin** (ABM, filtros) y **frontend público** (listado, ficha).
