@@ -10,6 +10,9 @@ import ar.sf.sicat.admin.PruebaAbm;
 
 class OfertaEspecializacionAbmTest extends PruebaAbm {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    org.springframework.jdbc.core.JdbcTemplate jdbc;
+
     @Test
     void ofertasYCategoriasAdicionales() throws Exception {
         long establecimiento = crearEstablecimiento(crearOferente(), null);
@@ -64,6 +67,10 @@ class OfertaEspecializacionAbmTest extends PruebaAbm {
                 "[{\"id\":%d,\"diaSemana\":1,\"desde\":\"10:00\",\"hasta\":\"14:00\"}]".formatted(lunes), 200);
         assertThat((List<Object>) leer(cambiados, "$")).hasSize(1);
         assertThat((String) leer(get_("/ofertas/" + oferta + "/horarios", 200), "$[0].desde")).isEqualTo("10:00");
+
+        // en la base queda la hora tal cual, sin corrimiento por zona horaria
+        assertThat(jdbc.queryForObject("SELECT hora_desde::text FROM sicat.horario WHERE id_horario = ?",
+                String.class, lunes)).isEqualTo("10:00:00");
 
         put_("/ofertas/" + oferta + "/horarios", "[{\"diaSemana\":8,\"desde\":\"10:00\",\"hasta\":\"14:00\"}]", 400);
         put_("/ofertas/" + oferta + "/horarios", "[{\"diaSemana\":2,\"desde\":\"10:00\",\"hasta\":\"10:00\"}]", 422);

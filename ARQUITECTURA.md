@@ -320,16 +320,17 @@ Qué se registra y cómo: ver `docs/decisiones/0006-auditoria-con-eventos-de-hib
 
 ## 9. Endpoints: API Pública (`/api/public/v1`)
 
-Solo `GET`. Sin autenticación. Con caché y límite de pedidos por IP.
+Solo `GET`. Sin autenticación. Caché de 5 minutos (un cambio de publicación puede tardar hasta 5 minutos en verse) y 120 pedidos por minuto por IP. Detalle en `docs/decisiones/0009-api-publica.md`.
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/establecimientos` | Listado paginado. Filtros: `q`, `categoria`, `localidad`, `bbox` |
-| GET | `/establecimientos/{id}` | Ficha: bloque común + `ofertas[]` con su `detalle` |
-| GET | `/establecimientos/cercanos` | Por `lat`, `lng`, `radioMetros` |
-| GET | `/categorias` | Árbol de categorías publicadas |
-| GET | `/mapa` | GeoJSON de establecimientos publicados (filtros `categoria`, `bbox`) |
-| GET | `/mapa/circuitos` | GeoJSON de circuitos publicados |
+| GET | `/establecimientos` | Listado paginado (destacados primero). Filtros: `q` (nombre y categorías, sin acentos), `categoria` (incluye subcategorías y adicionales), `localidad`, `bbox` |
+| GET | `/establecimientos/{id}` | Ficha: bloque común + `ofertas[]` con horarios y `detalle`. 404 si no está publicado |
+| GET | `/establecimientos/cercanos` | Por `lat`, `lng`, `radioMetros` (por defecto 1000, máx. 20000) y `limite` (por defecto 20, máx. 100); incluye `distanciaMetros` |
+| GET | `/categorias` | Árbol de categorías activas |
+| GET | `/localidades` | Localidades con establecimientos publicados (para el filtro) |
+| GET | `/mapa` | GeoJSON (puntos) de establecimientos publicados; mismos filtros que el listado |
+| GET | `/mapa/circuitos` | GeoJSON (líneas) de circuitos publicados, con sus paradas |
 | GET | `/health` | Estado del servicio |
 
 Formato de la ficha:
@@ -367,7 +368,7 @@ Formato de la ficha:
 4. **Admin API – auditoría** ✅: listener y tabla, antes de los ABM para que todo quede registrado.
 5. **Admin API – ABM** ✅: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones. (Quedan para su paso: publicar/despublicar → 6, duplicados → 8, mapa → 10.)
 6. **Publicación** ✅: estados y validaciones (requisitos en `docs/decisiones/0008-requisitos-de-publicacion.md`).
-7. **Vistas públicas** (revisar la propuesta de `V8`) + **API Pública** con caché y rate limit.
+7. **Vistas públicas** + **API Pública** ✅ con caché y rate limit (campos públicos revisados; `V9` agrega la vista de búsqueda).
 8. **Importación** desde Excel (validación, duplicados, ejecución).
 9. **Frontend admin** (ABM, filtros) y **frontend público** (listado, ficha).
 10. **Mapa** (admin y público).
