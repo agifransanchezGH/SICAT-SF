@@ -70,8 +70,8 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
       </form>
       @if (filtros.controls.vista.value === 'revisar') {
         <p class="suave ayuda">
-          Revisá cada dirección: si las coordenadas son correctas tocá <mat-icon inline>check</mat-icon>; si no, editá el lugar y
-          cargá la latitud y longitud correctas (podés copiarlas de OpenStreetMap o Google Maps).
+          Revisá cada dirección con <mat-icon inline>edit</mat-icon>: si el pin está bien, tocá "Confirmar ubicación"; si no, movelo en el mapa
+          (o tocá el punto correcto) y guardá. Si ya sabés que la ubicación es correcta, confirmala directo con <mat-icon inline>check</mat-icon>.
         </p>
       }
       <div class="tarjeta">

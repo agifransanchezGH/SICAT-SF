@@ -39,6 +39,22 @@ export class ApiPublicaService {
     return this.categorias$;
   }
 
+  /** GeoJSON de puntos de los publicados; mismos filtros que el listado. */
+  mapa(filtros: FiltrosListado = {}): Observable<GeoJSON.FeatureCollection<GeoJSON.Point>> {
+    let params = new HttpParams();
+    for (const [clave, valor] of Object.entries(filtros)) {
+      if (valor !== null && valor !== undefined && valor !== '') {
+        params = params.set(clave, String(valor));
+      }
+    }
+    return this.http.get<GeoJSON.FeatureCollection<GeoJSON.Point>>(`${this.api}/mapa`, { params });
+  }
+
+  /** GeoJSON de líneas de los circuitos publicados. */
+  circuitos(): Observable<GeoJSON.FeatureCollection<GeoJSON.LineString>> {
+    return this.http.get<GeoJSON.FeatureCollection<GeoJSON.LineString>>(`${this.api}/mapa/circuitos`);
+  }
+
   localidades(): Observable<LocalidadPublica[]> {
     this.localidades$ ??= this.http.get<LocalidadPublica[]>(`${this.api}/localidades`).pipe(shareReplay(1));
     return this.localidades$;

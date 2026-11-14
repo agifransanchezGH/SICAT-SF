@@ -6,7 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Title } from '@angular/platform-browser';
 import { Router, RouterLink } from '@angular/router';
-import { Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario } from 'shared';
+import * as L from 'leaflet';
+import { Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario, SicatMapa, iconoPin } from 'shared';
 
 import { ApiPublicaService } from '../core/api-publica.service';
 import { enlaceDe } from './contacto-link';
@@ -23,7 +24,7 @@ export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; 
 /** Ficha pública de un establecimiento: bloque común y sus ofertas con el detalle de cada una. */
 @Component({
   selector: 'app-ficha-page',
-  imports: [RouterLink, DatePipe, MatIconModule, MatButtonModule, MatProgressBarModule],
+  imports: [RouterLink, DatePipe, SicatMapa, MatIconModule, MatButtonModule, MatProgressBarModule],
   template: `
     <div class="contenido">
       <button mat-button class="volver" (click)="volver()"><mat-icon>arrow_back</mat-icon> Volver</button>
@@ -141,6 +142,7 @@ export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; 
               @if (f.lugar && f.lugar !== f.nombre && f.lugar !== f.direccion) { <p>{{ f.lugar }}</p> }
               <p>{{ unir(f.direccion, f.localidad) || 'Sin dirección cargada' }}</p>
               @if (f.coordenadas; as c) {
+                <sicat-mapa class="mini-mapa" [centro]="[c.lat, c.lng]" [zoom]="16" (listo)="ubicar($event)" />
                 <a mat-stroked-button target="_blank" rel="noopener"
                    [href]="'https://www.openstreetmap.org/directions?to=' + c.lat + '%2C' + c.lng + '#map=17/' + c.lat + '/' + c.lng">
                   <mat-icon>directions</mat-icon> Cómo llegar
@@ -230,6 +232,7 @@ export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; 
     .contactos mat-icon { color: var(--mat-sys-primary); flex: none; }
     .contactos small { display: block; }
     .nota { margin: 0 4px; font-size: 14px; }
+    .mini-mapa { height: 200px; border-radius: 8px; overflow: hidden; margin: 0 0 12px; }
     @media (max-width: 860px) { .columnas { grid-template-columns: 1fr; } }
   `,
 })
@@ -282,6 +285,22 @@ export class FichaPage {
       },
       error: (e: unknown) => (e instanceof HttpErrorResponse && e.status === 404 ? this.noEncontrado : this.error).set(true),
     });
+  }
+
+  /** Marca el establecimiento y, si alguna oferta es un circuito con trazado, lo dibuja. */
+  protected ubicar(m: L.Map): void {
+    const f = this.ficha();
+    if (!f?.coordenadas) {
+      return;
+    }
+    L.marker([f.coordenadas.lat, f.coordenadas.lng], { icon: iconoPin(), title: f.nombre }).addTo(m);
+    const trazados = (f.ofertas ?? [])
+      .map((o) => o.detalle?.circuito?.trazado)
+      .filter((t): t is GeoJSON.LineString => !!t);
+    if (trazados.length) {
+      const capa = L.geoJSON(trazados, { style: { color: '#7b1fa2', weight: 4 } }).addTo(m);
+      m.fitBounds(capa.getBounds().extend([f.coordenadas.lat, f.coordenadas.lng]), { padding: [20, 20] });
+    }
   }
 
   protected duracion(min: number): string {

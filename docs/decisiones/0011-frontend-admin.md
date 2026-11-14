@@ -16,7 +16,7 @@ El paso 9 del orden de construcción pide el frontend admin (ABM y filtros) sobr
 ### Estructura de pantallas
 - **Establecimientos** es la entrada: listado con filtros (texto, estado, categoría, localidad, bajas) y ficha con pestañas: Datos, Publicación, Ofertas, Contactos, Características, Referentes, Distinciones e Historial.
 - **Ofertas** se abren desde la ficha del establecimiento. Las especializaciones (alojamiento, circuito, salones, visitas guiadas) son pestañas de la oferta: se muestran las que tiene y se agregan desde "+ Especialización".
-- **Lugares y ubicaciones**: por defecto muestra la cola **"A revisar"** (`estadoGeo` AUTOMATICO, APROXIMADO, NO_ENCONTRADO o PENDIENTE). Una ubicación correcta se confirma con un clic (pasa a VERIFICADO); si no, se edita y se cargan latitud y longitud a mano. Coordenadas escritas por una persona quedan VERIFICADO. La edición sobre el mapa llega en el paso 10.
+- **Lugares y ubicaciones**: por defecto muestra la cola **"A revisar"** (`estadoGeo` AUTOMATICO, APROXIMADO, NO_ENCONTRADO o PENDIENTE). Una ubicación correcta se confirma con un clic (pasa a VERIFICADO); si no, se edita y se cargan latitud y longitud a mano. Coordenadas escritas por una persona quedan VERIFICADO. Desde el paso 10 la ubicación se marca también sobre el mapa (ADR 0013).
 - Además: Oferentes, Posibles duplicados, Catálogos, Categorías (árbol), Importación (validar → importar → geocodificar), Usuarios y Auditoría.
 
 ### Convenciones
@@ -29,4 +29,4 @@ El paso 9 del orden de construcción pide el frontend admin (ABM y filtros) sobr
 ## Consecuencias
 - El panel se puede usar de punta a punta para cargar, revisar y publicar lo importado.
 - El bundle inicial ronda 750 kB por Material; el presupuesto del admin se subió a 1 MB (aviso) / 1,5 MB (error). Es una herramienta interna.
-- El sitio público quedó en ADR 0012. Paso 10: mapas en ambos.
+- El sitio público quedó en ADR 0012 y los mapas en ADR 0013.
