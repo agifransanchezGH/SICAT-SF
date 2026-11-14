@@ -258,7 +258,7 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | GET | `/establecimientos/{id}/publicacion` | Estado y requisitos que faltan para publicar | todos |
 | POST | `/establecimientos/{id}/publicar` | Pasa a `PUBLICADO` si cumple los requisitos (422 con `errores` si no) | ADMIN, CARGADOR |
 | POST | `/establecimientos/{id}/despublicar` | Pasa a `OCULTO` (422 si está en `BORRADOR`) | ADMIN, CARGADOR |
-| GET | `/establecimientos/duplicados` | Posibles duplicados para resolver antes de migrar | ADMIN, CARGADOR |
+| GET | `/establecimientos/duplicados` | Grupos de establecimientos activos con el mismo nombre normalizado (primero los de igual dirección) | ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/contactos` | Canales de contacto (PUT reemplaza) | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/referentes` | Referentes | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/distinciones` | Distinciones con año y URL | todos / ADMIN, CARGADOR |
@@ -307,8 +307,13 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Importación (migración desde Excel)
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| POST | `/importacion/{archivo}/validar` | Carga un Excel y devuelve errores/duplicados sin guardar | ADMIN |
-| POST | `/importacion/{archivo}/ejecutar` | Guarda los datos validados (auditoría con `origen = MIGRACION`) | ADMIN |
+| GET | `/importacion/perfiles` | Planillas que se pueden importar (`archivo`) y sus hojas → categorías | ADMIN |
+| POST | `/importacion/{archivo}/validar` | Multipart (`archivo`=.xlsx). Simula y devuelve cada establecimiento como NUEVO, DUPLICADO_EN_BASE, DUPLICADO_EN_ARCHIVO o ERROR, sin guardar | ADMIN |
+| POST | `/importacion/{archivo}/ejecutar` | Guarda los NUEVO en BORRADOR (auditoría con `origen = MIGRACION`); a los DUPLICADO_EN_BASE les suma la categoría si no la tienen | ADMIN |
+| POST | `/importacion/geocodificar?limite=&estados=` | Geocodifica en segundo plano (OpenStreetMap, 1 consulta por segundo) las direcciones `PENDIENTE` o, con `estados`, reintenta `NO_ENCONTRADO`/`APROXIMADO`. Resultado: `AUTOMATICO`, `APROXIMADO` o `NO_ENCONTRADO` | ADMIN |
+| GET | `/importacion/geocodificacion` | Avance de la geocodificación | ADMIN |
+
+`{archivo}` ∈ `gastronomia`, `alojamiento`, `museos`, `salones`, `iglesias`, `edificios-historicos`, `atractivos-naturales`, `espacios-culturales`, `recreacion`, `servicios-turisticos`. Detalle en `docs/decisiones/0010-importacion-desde-excel.md`.
 
 ### Auditoría (solo lectura)
 | Método | Ruta | Descripción | Rol |
@@ -369,7 +374,7 @@ Formato de la ficha:
 5. **Admin API – ABM** ✅: catálogos, categorías/características, oferentes, lugares, establecimientos, ofertas, contactos, horarios, especializaciones. (Quedan para su paso: publicar/despublicar → 6, duplicados → 8, mapa → 10.)
 6. **Publicación** ✅: estados y validaciones (requisitos en `docs/decisiones/0008-requisitos-de-publicacion.md`).
 7. **Vistas públicas** + **API Pública** ✅ con caché y rate limit (campos públicos revisados; `V9` agrega la vista de búsqueda).
-8. **Importación** desde Excel (validación, duplicados, ejecución).
+8. **Importación** desde Excel ✅ (validación, duplicados, ejecución y geocodificación con revisión manual).
 9. **Frontend admin** (ABM, filtros) y **frontend público** (listado, ficha).
 10. **Mapa** (admin y público).
 11. **Etapa 2** (fuera de alcance): rol `OFERENTE`.

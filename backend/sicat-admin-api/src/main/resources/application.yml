@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: sicat-admin-api
+  servlet:
+    multipart:
+      max-file-size: 20MB          # planillas de importación
+      max-request-size: 20MB
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:sicat}
     username: ${SICAT_ADMIN_DB_USER:sicat_admin_rw}
@@ -34,6 +38,11 @@ sicat:
     nombre: ${SICAT_ADMIN_INICIAL_NOMBRE:Administrador}
   cors:
     origenes: ${SICAT_ADMIN_CORS:http://localhost:4200}
+  # Geocodificación de direcciones importadas (ADR 0010). Nominatim admite como máximo 1 consulta por segundo.
+  geocodificacion:
+    url: ${SICAT_GEOCODIFICACION_URL:https://nominatim.openstreetmap.org}
+    user-agent: SICAT-SF/0.1 (Municipalidad de Santa Fe)
+    intervalo-ms: 1100             # mínimo entre consultas a Nominatim (cada dirección puede hacer hasta 3)
 
 springdoc:
   swagger-ui:

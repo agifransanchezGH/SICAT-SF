@@ -30,6 +30,23 @@ La API Admin ejecuta las migraciones Flyway al arrancar; la API Pública arranca
 
 **Primer ingreso:** si la base no tiene usuarios, la API Admin crea un ADMIN con `SICAT_ADMIN_INICIAL_EMAIL` y `SICAT_ADMIN_INICIAL_PASSWORD` del `.env`. Con esos datos se entra al front admin o se prueba en Swagger (`POST /auth/login`, y luego **Authorize** con el `accessToken`).
 
+## Importar las planillas Excel
+
+Con la API Admin levantada y un token de ADMIN (Swagger: `POST /auth/login` → **Authorize**):
+
+1. `GET /importacion/perfiles`: qué valor de `archivo` corresponde a cada planilla.
+2. `POST /importacion/{archivo}/validar` con la planilla: revisar nuevos, duplicados y errores (no guarda).
+3. `POST /importacion/{archivo}/ejecutar`: guarda los nuevos en BORRADOR. Se puede repetir sin duplicar.
+4. `POST /importacion/geocodificar?limite=1000` y seguir el avance en `GET /importacion/geocodificacion` (OpenStreetMap, ~1 dirección por segundo).
+5. En el panel: verificar en el mapa las coordenadas automáticas, ubicar las no encontradas y revisar `GET /establecimientos/duplicados` antes de publicar.
+
+Desde la terminal, por ejemplo:
+
+```bash
+curl -X POST http://localhost:8081/api/admin/v1/importacion/gastronomia/validar \
+  -H "Authorization: Bearer $TOKEN" -F "archivo=@GASTRONOMIA.xlsx"
+```
+
 ## Desarrollo local
 
 Base de datos sola:
