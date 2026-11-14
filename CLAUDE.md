@@ -12,7 +12,7 @@ Sistema de información turística de la Municipalidad de Santa Fe. Backend Java
 - La API pública (`sicat-public-api`) solo lee el esquema `publico` (vistas) con el usuario de solo lectura. Nunca depende de `sicat-admin-api`.
 - Solo la API Admin ejecuta migraciones Flyway. Todo cambio de esquema es una migración nueva (`V<n>__descripcion.sql`); nunca se edita una ya aplicada.
 - No exponer entidades JPA por HTTP: siempre DTOs.
-- La auditoría vive en su propio paquete, separada de la lógica de negocio.
+- La auditoría vive en su propio paquete, separada de la lógica de negocio. Es automática para todo cambio hecho por JPA; no agregar código de auditoría en los servicios y evitar SQL directo para escribir datos de negocio (no se auditaría).
 - Un campo es público solo si se agrega explícitamente a la vista correspondiente.
 - Cada endpoint nuevo lleva DTO, validaciones, documentación OpenAPI y al menos un test.
 
