@@ -28,7 +28,7 @@ Siguen fuera del sitio: referentes, personal del alojamiento, estado de conserva
 - `/localidades` (agregado, no estaba en el diseño original): solo las que tienen establecimientos publicados, para el filtro del sitio.
 
 ### Caché y límites
-- Caffeine en memoria, 5 minutos, por combinación de parámetros. Un establecimiento recién publicado o despublicado puede tardar hasta 5 minutos en reflejarse.
+- Caffeine en memoria, 5 minutos, por combinación de parámetros. Desde ADR 0014 se vacía al instante con cada cambio en `sicat`; los 5 minutos quedan como respaldo.
 - 120 pedidos por minuto por IP (Bucket4j). Detrás de un proxy hay que configurar `server.forward-headers-strategy`.
 
 ### Zona horaria
@@ -36,4 +36,4 @@ Se quitó `hibernate.jdbc.time_zone: UTC` de ambas APIs: corría los campos `tim
 
 ## Consecuencias
 - Para hacer público un campo nuevo hay que agregarlo a la vista con una migración nueva (y al DTO de la ficha).
-- Si la demora de 5 minutos molesta, se puede bajar el TTL o invalidar la caché desde la API Admin al publicar (requiere comunicación entre APIs; hoy no la hay a propósito).
+- La demora de 5 minutos se resolvió en ADR 0014 sin comunicación entre APIs: la base avisa con NOTIFY.

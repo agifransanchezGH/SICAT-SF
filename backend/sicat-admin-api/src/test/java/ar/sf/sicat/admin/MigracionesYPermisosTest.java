@@ -40,6 +40,22 @@ class MigracionesYPermisosTest extends PruebaIntegracion {
         assertThat(roles.count()).isEqualTo(4);
     }
 
+    /** ADR 0014: sin el trigger, los cambios de esa tabla tardan 5 minutos en verse en el sitio público. */
+    @Test
+    void todasLasTablasDeSicatAvisanSusCambios() {
+        java.util.List<String> sinAviso = jdbc.queryForList("""
+                SELECT t.table_name FROM information_schema.tables t
+                WHERE t.table_schema = 'sicat' AND t.table_type = 'BASE TABLE'
+                  AND t.table_name <> 'flyway_schema_history'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM pg_trigger tg
+                      JOIN pg_class c ON c.oid = tg.tgrelid
+                      JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE n.nspname = 'sicat' AND c.relname = t.table_name AND tg.tgname = 'avisar_cambio')
+                ORDER BY 1""", String.class);
+        assertThat(sinAviso).as("Tablas de sicat sin el trigger avisar_cambio").isEmpty();
+    }
+
     @Test
     void publicoVeSoloLoPublicadoYNoLeeElNegocio() throws SQLException {
         Long tipo = jdbc.queryForObject(
