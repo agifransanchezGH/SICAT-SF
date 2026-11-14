@@ -16,7 +16,7 @@ Restricción central: **la parte pública no puede afectar a la administración*
 | Migraciones | Flyway (scripts SQL versionados) |
 | Backend | Java 21 + Spring Boot 3.5 (Maven multi-módulo, `./mvnw`) |
 | Seguridad | Spring Security + JWT (HS256), roles |
-| Frontend | Angular 20 (workspace con dos apps: admin y público, y librería `shared`) |
+| Frontend | Angular 20 + Angular Material (workspace con dos apps: admin y público, y librería `shared`) |
 | Mapa | Leaflet + OpenStreetMap |
 | Documentación API | OpenAPI / Swagger (springdoc) |
 | Entorno local | Docker Compose |
@@ -122,14 +122,17 @@ sicat-sf/
 │   └── projects/
 │       ├── admin/                 # app panel municipal
 │       │   └── src/app/
-│       │       ├── core/          # auth, interceptors, guards por rol
+│       │       ├── core/          # auth, interceptors, guards por rol, cliente API, modelos, avisos
+│       │       ├── comun/         # editores reutilizables: contactos, horarios, características, historial
 │       │       ├── layout/
 │       │       ├── oferentes/
 │       │       ├── establecimientos/
-│       │       ├── ofertas/
-│       │       ├── especializaciones/ # alojamiento, circuito, salón, visita guiada
+│       │       ├── ofertas/       # oferta + especializaciones: alojamiento, circuito, salón, visita guiada
 │       │       ├── catalogos/     # incluye categorías y características
-│       │       ├── lugares/
+│       │       ├── lugares/       # incluye la cola de ubicaciones a revisar
+│       │       ├── duplicados/
+│       │       ├── importacion/
+│       │       ├── usuarios/
 │       │       ├── mapa/
 │       │       └── auditoria/
 │       ├── public/                # app sitio público
@@ -375,7 +378,7 @@ Formato de la ficha:
 6. **Publicación** ✅: estados y validaciones (requisitos en `docs/decisiones/0008-requisitos-de-publicacion.md`).
 7. **Vistas públicas** + **API Pública** ✅ con caché y rate limit (campos públicos revisados; `V9` agrega la vista de búsqueda).
 8. **Importación** desde Excel ✅ (validación, duplicados, ejecución y geocodificación con revisión manual).
-9. **Frontend admin** (ABM, filtros) y **frontend público** (listado, ficha).
+9. **Frontend admin** ✅ (ABM, filtros, publicación, ubicaciones a revisar, importación; ver `docs/decisiones/0011-frontend-admin.md`) y **frontend público** (listado, ficha).
 10. **Mapa** (admin y público).
 11. **Etapa 2** (fuera de alcance): rol `OFERENTE`.
 

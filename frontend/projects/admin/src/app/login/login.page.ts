@@ -1,47 +1,51 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { AuthService } from '../core/auth.service';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressBarModule],
   template: `
     <main class="contenedor">
-      <form class="tarjeta" [formGroup]="form" (ngSubmit)="ingresar()">
+      <form class="tarjeta login" [formGroup]="form" (ngSubmit)="ingresar()">
+        @if (enviando()) {
+          <mat-progress-bar mode="indeterminate" class="progreso" />
+        }
         <h1>SICAT SF</h1>
-        <p class="sub">Panel de administración</p>
+        <p class="suave">Panel de administración</p>
 
-        <label for="email">Email</label>
-        <input id="email" type="email" formControlName="email" autocomplete="username" />
+        <mat-form-field>
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="username" />
+        </mat-form-field>
 
-        <label for="password">Contraseña</label>
-        <input id="password" type="password" formControlName="password" autocomplete="current-password" />
+        <mat-form-field>
+          <mat-label>Contraseña</mat-label>
+          <input matInput type="password" formControlName="password" autocomplete="current-password" />
+        </mat-form-field>
 
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }
 
-        <button type="submit" [disabled]="form.invalid || enviando()">
-          {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
-        </button>
+        <button mat-flat-button type="submit" [disabled]="form.invalid || enviando()">Ingresar</button>
       </form>
     </main>
   `,
   styles: `
-    .contenedor { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #f7f8fa; }
-    .tarjeta { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 8px;
-      padding: 24px; background: #fff; border: 1px solid #d5dae1; border-radius: 10px; }
-    h1 { margin: 0; font-size: 22px; }
-    .sub { margin: 0 0 12px; color: #5a626e; }
-    label { font-size: 14px; font-weight: 500; }
-    input { padding: 8px 10px; border: 1px solid #b8c0cc; border-radius: 6px; font: inherit; }
-    button { margin-top: 12px; padding: 10px; border: 0; border-radius: 6px; background: #2f5bd3; color: #fff;
-      font: inherit; font-weight: 600; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: default; }
-    .error { margin: 4px 0 0; color: #b42318; font-size: 14px; }
+    .contenedor { min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
+    .login { position: relative; width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 12px; padding: 28px; box-sizing: border-box; }
+    .progreso { position: absolute; top: 0; left: 0; right: 0; }
+    h1 { margin: 0; font: var(--mat-sys-headline-medium); }
+    p { margin: 0 0 8px; }
+    .error { color: var(--sicat-error); }
   `,
 })
 export class LoginPage {

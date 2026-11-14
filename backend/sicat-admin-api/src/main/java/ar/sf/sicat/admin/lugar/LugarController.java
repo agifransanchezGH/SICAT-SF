@@ -38,7 +38,8 @@ public class LugarController {
 
     @GetMapping
     @PreAuthorize(Roles.LECTURA)
-    @Operation(summary = "Lista lugares", description = "Paginado. Filtros: q (nombre o calle), tipoLugar, padreId, localidadId, bbox.")
+    @Operation(summary = "Lista lugares",
+            description = "Paginado. Filtros: q (nombre o calle), tipoLugar, padreId, localidadId, bbox, estadoGeo (uno o varios).")
     public PaginaDto<LugarDto> listar(
             @RequestParam(required = false) String q,
             @Parameter(description = "Id del tipo de lugar") @RequestParam(required = false) Long tipoLugar,
@@ -46,8 +47,10 @@ public class LugarController {
             @RequestParam(required = false) Long localidadId,
             @Parameter(description = "minLng,minLat,maxLng,maxLat", example = "-60.75,-31.68,-60.65,-31.58")
             @RequestParam(required = false) String bbox,
+            @Parameter(description = "Estados de geocodificación: PENDIENTE, AUTOMATICO, APROXIMADO, NO_ENCONTRADO, VERIFICADO")
+            @RequestParam(required = false) java.util.Set<String> estadoGeo,
             @ParameterObject @PageableDefault(size = 20, sort = "nombre") Pageable pageable) {
-        return servicio.listar(q, tipoLugar, padreId, localidadId, bbox, pageable);
+        return servicio.listar(q, tipoLugar, padreId, localidadId, bbox, estadoGeo, pageable);
     }
 
     @GetMapping("/{id}")

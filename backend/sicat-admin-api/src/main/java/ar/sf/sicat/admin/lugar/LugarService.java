@@ -52,7 +52,7 @@ public class LugarService {
 
     @Transactional(readOnly = true)
     public PaginaDto<LugarDto> listar(String q, Long tipoLugarId, Long padreId, Long localidadId, String bbox,
-                                      Pageable pageable) {
+                                      java.util.Set<String> estadosGeo, Pageable pageable) {
         Bbox caja = Bbox.parse(bbox);
         List<Long> enCaja = caja == null ? null
                 : lugares.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
@@ -74,6 +74,9 @@ public class LugarService {
             }
             if (enCaja != null) {
                 p.add(enCaja.isEmpty() ? cb.disjunction() : root.get("id").in(enCaja));
+            }
+            if (estadosGeo != null && !estadosGeo.isEmpty()) {
+                p.add(root.get("estadoGeo").in(estadosGeo));
             }
             return cb.and(p.toArray(Predicate[]::new));
         };

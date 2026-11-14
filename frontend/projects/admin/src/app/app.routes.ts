@@ -11,13 +11,41 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'establecimientos' },
+      {
+        path: 'establecimientos',
+        loadComponent: () => import('./establecimientos/establecimientos.page').then((m) => m.EstablecimientosPage),
+      },
+      {
+        path: 'establecimientos/nuevo',
+        canActivate: [rolGuard('ADMIN', 'CARGADOR')],
+        loadComponent: () => import('./establecimientos/establecimiento-nuevo.page').then((m) => m.EstablecimientoNuevoPage),
+      },
+      {
+        path: 'establecimientos/:id',
+        loadComponent: () => import('./establecimientos/establecimiento.page').then((m) => m.EstablecimientoPage),
+      },
+      { path: 'ofertas/:id', loadComponent: () => import('./ofertas/oferta.page').then((m) => m.OfertaPage) },
       { path: 'oferentes', loadComponent: () => import('./oferentes/oferentes.page').then((m) => m.OferentesPage) },
-      { path: 'establecimientos', loadComponent: () => import('./establecimientos/establecimientos.page').then((m) => m.EstablecimientosPage) },
-      { path: 'ofertas', loadComponent: () => import('./ofertas/ofertas.page').then((m) => m.OfertasPage) },
-      { path: 'especializaciones', loadComponent: () => import('./especializaciones/especializaciones.page').then((m) => m.EspecializacionesPage) },
+      { path: 'oferentes/:id', loadComponent: () => import('./oferentes/oferente.page').then((m) => m.OferentePage) },
       { path: 'lugares', loadComponent: () => import('./lugares/lugares.page').then((m) => m.LugaresPage) },
+      {
+        path: 'duplicados',
+        canActivate: [rolGuard('ADMIN', 'CARGADOR')],
+        loadComponent: () => import('./duplicados/duplicados.page').then((m) => m.DuplicadosPage),
+      },
       { path: 'catalogos', loadComponent: () => import('./catalogos/catalogos.page').then((m) => m.CatalogosPage) },
+      { path: 'categorias', loadComponent: () => import('./catalogos/categorias.page').then((m) => m.CategoriasPage) },
       { path: 'mapa', loadComponent: () => import('./mapa/mapa.page').then((m) => m.MapaPage) },
+      {
+        path: 'importacion',
+        canActivate: [rolGuard('ADMIN')],
+        loadComponent: () => import('./importacion/importacion.page').then((m) => m.ImportacionPage),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [rolGuard('ADMIN')],
+        loadComponent: () => import('./usuarios/usuarios.page').then((m) => m.UsuariosPage),
+      },
       {
         path: 'auditoria',
         canActivate: [rolGuard('ADMIN')],
