@@ -11,7 +11,7 @@
 ### Requisitos para pasar a PUBLICADO
 1. El establecimiento está activo.
 2. Su oferente está activo.
-3. Tiene un lugar asignado **con coordenadas** (para que aparezca en el mapa).
+3. Tiene un lugar asignado **con coordenadas** (para que aparezca en el mapa). Si las coordenadas son automáticas (`estado_geo = AUTOMATICO`, de la importación) tienen que estar verificadas (ADR 0010).
 4. Tiene **al menos una oferta activa** cuya categoría principal está activa.
 
 La descripción y los contactos públicos no son obligatorios.
