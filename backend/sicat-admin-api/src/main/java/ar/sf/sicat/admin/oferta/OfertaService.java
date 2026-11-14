@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ar.sf.sicat.admin.especializacion.EspecializacionService;
 import ar.sf.sicat.admin.oferta.dto.OfertaDto;
 import ar.sf.sicat.admin.oferta.dto.OfertaSolicitud;
+import ar.sf.sicat.admin.publicacion.PublicacionService;
 import ar.sf.sicat.core.comun.ReglaNegocioException;
 import ar.sf.sicat.core.dominio.clasificacion.Categoria;
 import ar.sf.sicat.core.dominio.clasificacion.CategoriaRepository;
@@ -30,15 +31,17 @@ public class OfertaService {
     private final CategoriaRepository categorias;
     private final HorarioService horarios;
     private final EspecializacionService especializaciones;
+    private final PublicacionService publicacion;
 
     public OfertaService(OfertaRepository ofertas, EstablecimientoRepository establecimientos,
                          CategoriaRepository categorias, HorarioService horarios,
-                         EspecializacionService especializaciones) {
+                         EspecializacionService especializaciones, PublicacionService publicacion) {
         this.ofertas = ofertas;
         this.establecimientos = establecimientos;
         this.categorias = categorias;
         this.horarios = horarios;
         this.especializaciones = especializaciones;
+        this.publicacion = publicacion;
     }
 
     @Transactional(readOnly = true)
@@ -70,12 +73,16 @@ public class OfertaService {
         if (s.activo() != null) {
             o.setActivo(s.activo());
         }
+        publicacion.verificarPublicado(o.getEstablecimiento());
         return dto(o, true);
     }
 
+    /** Baja lógica. 422 si era la única oferta válida de un establecimiento publicado. */
     @Transactional
     public void darDeBaja(Long id) {
-        buscar(ofertas, id, "Oferta").setActivo(false);
+        Oferta o = buscar(ofertas, id, "Oferta");
+        o.setActivo(false);
+        publicacion.verificarPublicado(o.getEstablecimiento());
     }
 
     @Transactional(readOnly = true)

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import ar.sf.sicat.admin.oferente.dto.OferenteDto;
 import ar.sf.sicat.admin.oferente.dto.OferenteSolicitud;
+import ar.sf.sicat.admin.publicacion.PublicacionService;
 import ar.sf.sicat.core.comun.PaginaDto;
 import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
 import ar.sf.sicat.core.dominio.oferente.Oferente;
@@ -25,12 +26,14 @@ public class OferenteService {
     private final OferenteRepository oferentes;
     private final TipoOferenteRepository tipos;
     private final EstablecimientoRepository establecimientos;
+    private final PublicacionService publicacion;
 
     public OferenteService(OferenteRepository oferentes, TipoOferenteRepository tipos,
-                           EstablecimientoRepository establecimientos) {
+                           EstablecimientoRepository establecimientos, PublicacionService publicacion) {
         this.oferentes = oferentes;
         this.tipos = tipos;
         this.establecimientos = establecimientos;
+        this.publicacion = publicacion;
     }
 
     @Transactional(readOnly = true)
@@ -71,13 +74,15 @@ public class OferenteService {
         if (s.activo() != null) {
             o.setActivo(s.activo());
         }
+        publicacion.verificarPublicados(establecimientos.findByOferenteIdOrderByNombre(id));
         return dto(o, true);
     }
 
-    /** Baja lógica. Sus establecimientos no cambian (y dejan de ser públicos por el filtro de las vistas). */
+    /** Baja lógica. 422 si tiene establecimientos publicados (hay que despublicarlos primero). */
     @Transactional
     public void darDeBaja(Long id) {
         buscar(oferentes, id, "Oferente").setActivo(false);
+        publicacion.verificarPublicados(establecimientos.findByOferenteIdOrderByNombre(id));
     }
 
     private void aplicar(Oferente o, OferenteSolicitud s) {

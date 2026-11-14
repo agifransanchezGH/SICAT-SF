@@ -14,6 +14,12 @@ public interface EstablecimientoRepository
 
     boolean existsByLugarId(Long idLugar);
 
+    List<Establecimiento> findByLugarId(Long idLugar);
+
+    /** Establecimientos con alguna oferta cuya categoría principal es la indicada. */
+    @Query("SELECT DISTINCT o.establecimiento FROM Oferta o WHERE o.categoria.id = :idCategoria")
+    List<Establecimiento> conOfertasDeCategoria(@Param("idCategoria") Long idCategoria);
+
     /** Establecimientos con lugar a menos de {@code radioMetros} del punto (PostGIS, sobre geography). */
     @Query(value = """
             SELECT e.* FROM sicat.establecimiento e
