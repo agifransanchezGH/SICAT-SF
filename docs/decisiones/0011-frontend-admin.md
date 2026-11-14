@@ -29,4 +29,4 @@ El paso 9 del orden de construcción pide el frontend admin (ABM y filtros) sobr
 ## Consecuencias
 - El panel se puede usar de punta a punta para cargar, revisar y publicar lo importado.
 - El bundle inicial ronda 750 kB por Material; el presupuesto del admin se subió a 1 MB (aviso) / 1,5 MB (error). Es una herramienta interna.
-- Pendiente para el próximo PR: el sitio público (listado y ficha). Paso 10: mapas en ambos.
+- El sitio público quedó en ADR 0012. Paso 10: mapas en ambos.
