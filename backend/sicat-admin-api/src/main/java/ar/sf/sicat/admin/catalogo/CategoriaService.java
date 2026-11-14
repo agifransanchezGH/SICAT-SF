@@ -19,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import ar.sf.sicat.admin.catalogo.dto.CatalogoItemDto;
 import ar.sf.sicat.admin.catalogo.dto.CategoriaNodoDto;
 import ar.sf.sicat.admin.catalogo.dto.CategoriaSolicitud;
+import ar.sf.sicat.admin.publicacion.PublicacionService;
 import ar.sf.sicat.core.comun.ReglaNegocioException;
+import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
 import ar.sf.sicat.core.dominio.clasificacion.Caracteristica;
 import ar.sf.sicat.core.dominio.clasificacion.CaracteristicaRepository;
 import ar.sf.sicat.core.dominio.clasificacion.Categoria;
@@ -30,10 +32,15 @@ public class CategoriaService {
 
     private final CategoriaRepository categorias;
     private final CaracteristicaRepository caracteristicas;
+    private final EstablecimientoRepository establecimientos;
+    private final PublicacionService publicacion;
 
-    public CategoriaService(CategoriaRepository categorias, CaracteristicaRepository caracteristicas) {
+    public CategoriaService(CategoriaRepository categorias, CaracteristicaRepository caracteristicas,
+                            EstablecimientoRepository establecimientos, PublicacionService publicacion) {
         this.categorias = categorias;
         this.caracteristicas = caracteristicas;
+        this.establecimientos = establecimientos;
+        this.publicacion = publicacion;
     }
 
     /** Árbol completo (o solo el subárbol de {@code padreId}). Por defecto sin inactivas. */
@@ -84,12 +91,15 @@ public class CategoriaService {
         if (s.activo() != null) {
             c.setActivo(s.activo());
         }
+        publicacion.verificarPublicados(establecimientos.conOfertasDeCategoria(id));
         return nodo(c);
     }
 
+    /** Baja lógica. 422 si deja a un establecimiento publicado sin ofertas con categoría activa. */
     @Transactional
     public void darDeBaja(Long id) {
         buscar(categorias, id, "Categoría").setActivo(false);
+        publicacion.verificarPublicados(establecimientos.conOfertasDeCategoria(id));
     }
 
     @Transactional(readOnly = true)
