@@ -29,9 +29,10 @@ La oferta turística está en 11 planillas de la Dirección de Turismo (35 hojas
 - `GET /establecimientos/duplicados` lista los grupos con el mismo nombre para revisarlos a mano.
 
 ### Geocodificación
-- `POST /importacion/geocodificar?limite=N` corre en segundo plano con **Nominatim (OpenStreetMap)**, una consulta por segundo (su política de uso), User-Agent "SICAT-SF/0.1 (Municipalidad de Santa Fe)", restringida a Santa Fe, Santo Tomé y la costa.
-- Resultado por lugar: `AUTOMATICO` (encontrado) o `NO_ENCONTRADO` (ubicar a mano). Cada lugar se guarda en su propia transacción.
-- **Las coordenadas automáticas hay que verificarlas**: un establecimiento con lugar `AUTOMATICO` no se puede publicar hasta que se confirme en el mapa (`estadoGeo = VERIFICADO`). Se agregó como requisito de publicación (amplía el ADR 0008).
+- `POST /importacion/geocodificar?limite=N&estados=...` corre en segundo plano con **Nominatim (OpenStreetMap)**, como máximo una consulta por segundo (su política de uso), User-Agent "SICAT-SF/0.1 (Municipalidad de Santa Fe)", restringida a Santa Fe, Santo Tomé y la costa. Por defecto procesa `PENDIENTE`; con `estados=NO_ENCONTRADO,APROXIMADO` se reintentan. Nunca toca los `VERIFICADO`.
+- Por dirección, hasta tres intentos: búsqueda estructurada "número + calle" con abreviaturas expandidas ("Bv." → "Bulevar", "Gral." → "General", "Av." → "Avenida"...), búsqueda libre con la dirección limpia (sin paréntesis, local, piso, "N°") y búsqueda libre con el texto original.
+- Resultado por lugar: `AUTOMATICO` (encontrado con su número), `APROXIMADO` (se pidió un número pero se encontró la calle o la zona: p. ej. todo un bulevar en un punto) o `NO_ENCONTRADO` (ubicar a mano). Cada lugar se guarda en su propia transacción.
+- **Las coordenadas automáticas hay que verificarlas**: un establecimiento con lugar `AUTOMATICO` o `APROXIMADO` no se puede publicar hasta que se confirme en el mapa (`estadoGeo = VERIFICADO`). Se agregó como requisito de publicación (amplía el ADR 0008).
 - Se envían a OpenStreetMap solo direcciones de establecimientos (datos públicos), nunca datos de personas.
 
 ### Resultado con las planillas reales

@@ -79,7 +79,7 @@ public class PublicacionService {
             faltan.add("Falta asignar un lugar");
         } else if (lugar.getPunto() == null) {
             faltan.add("El lugar '" + lugar.getNombre() + "' no tiene coordenadas");
-        } else if ("AUTOMATICO".equals(lugar.getEstadoGeo())) {
+        } else if ("AUTOMATICO".equals(lugar.getEstadoGeo()) || "APROXIMADO".equals(lugar.getEstadoGeo())) {
             faltan.add("Las coordenadas del lugar '" + lugar.getNombre()
                     + "' se calcularon automáticamente: verificalas en el mapa (estadoGeo = VERIFICADO)");
         }

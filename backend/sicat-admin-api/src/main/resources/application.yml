@@ -42,7 +42,7 @@ sicat:
   geocodificacion:
     url: ${SICAT_GEOCODIFICACION_URL:https://nominatim.openstreetmap.org}
     user-agent: SICAT-SF/0.1 (Municipalidad de Santa Fe)
-    pausa-ms: 1100
+    intervalo-ms: 1100             # mínimo entre consultas a Nominatim (cada dirección puede hacer hasta 3)
 
 springdoc:
   swagger-ui:

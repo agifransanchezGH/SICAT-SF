@@ -78,11 +78,15 @@ public class ImportacionController {
     @PostMapping("/importacion/geocodificar")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PreAuthorize(Roles.ADMIN)
-    @Operation(summary = "Geocodifica en segundo plano las direcciones pendientes",
-            description = "OpenStreetMap, una por segundo. Consultar el avance en GET /importacion/geocodificacion.")
+    @Operation(summary = "Geocodifica en segundo plano",
+            description = "OpenStreetMap, como máximo una consulta por segundo. Por defecto procesa las direcciones "
+                    + "PENDIENTE; con estados=NO_ENCONTRADO,APROXIMADO se reintentan. Nunca toca las VERIFICADO. "
+                    + "Avance en GET /importacion/geocodificacion.")
     public EstadoGeocodificacion geocodificar(
-            @RequestParam(defaultValue = "500") @Min(1) @Max(5000) int limite) {
-        return geocodificacion.iniciar(limite);
+            @RequestParam(defaultValue = "500") @Min(1) @Max(5000) int limite,
+            @Parameter(description = "PENDIENTE, NO_ENCONTRADO, APROXIMADO, AUTOMATICO")
+            @RequestParam(defaultValue = "PENDIENTE") java.util.Set<String> estados) {
+        return geocodificacion.iniciar(limite, estados);
     }
 
     @GetMapping("/importacion/geocodificacion")

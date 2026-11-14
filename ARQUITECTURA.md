@@ -310,7 +310,7 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | GET | `/importacion/perfiles` | Planillas que se pueden importar (`archivo`) y sus hojas → categorías | ADMIN |
 | POST | `/importacion/{archivo}/validar` | Multipart (`archivo`=.xlsx). Simula y devuelve cada establecimiento como NUEVO, DUPLICADO_EN_BASE, DUPLICADO_EN_ARCHIVO o ERROR, sin guardar | ADMIN |
 | POST | `/importacion/{archivo}/ejecutar` | Guarda los NUEVO en BORRADOR (auditoría con `origen = MIGRACION`); a los DUPLICADO_EN_BASE les suma la categoría si no la tienen | ADMIN |
-| POST | `/importacion/geocodificar?limite=` | Geocodifica en segundo plano (OpenStreetMap, 1 por segundo) las direcciones pendientes | ADMIN |
+| POST | `/importacion/geocodificar?limite=&estados=` | Geocodifica en segundo plano (OpenStreetMap, 1 consulta por segundo) las direcciones `PENDIENTE` o, con `estados`, reintenta `NO_ENCONTRADO`/`APROXIMADO`. Resultado: `AUTOMATICO`, `APROXIMADO` o `NO_ENCONTRADO` | ADMIN |
 | GET | `/importacion/geocodificacion` | Avance de la geocodificación | ADMIN |
 
 `{archivo}` ∈ `gastronomia`, `alojamiento`, `museos`, `salones`, `iglesias`, `edificios-historicos`, `atractivos-naturales`, `espacios-culturales`, `recreacion`, `servicios-turisticos`. Detalle en `docs/decisiones/0010-importacion-desde-excel.md`.

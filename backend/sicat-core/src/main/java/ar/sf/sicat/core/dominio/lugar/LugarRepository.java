@@ -13,10 +13,13 @@ public interface LugarRepository extends JpaRepository<Lugar, Long>, JpaSpecific
 
     boolean existsByLugarPadreId(Long idLugarPadre);
 
-    /** Lugares sin coordenadas en un estado de geocodificación (p. ej. PENDIENTE), del más antiguo al más nuevo. */
-    List<Lugar> findByPuntoIsNullAndEstadoGeoOrderById(String estadoGeo, org.springframework.data.domain.Pageable pagina);
+    /** Lugares en alguno de los estados de geocodificación, con id mayor al dado (para recorrer por tandas). */
+    List<Lugar> findByEstadoGeoInAndIdGreaterThanOrderById(java.util.Collection<String> estadosGeo, Long id,
+                                                           org.springframework.data.domain.Pageable pagina);
 
-    long countByPuntoIsNullAndEstadoGeo(String estadoGeo);
+    long countByEstadoGeoIn(java.util.Collection<String> estadosGeo);
+
+    long countByEstadoGeo(String estadoGeo);
 
     /** Ids de lugares cuyo punto cae dentro del rectángulo (PostGIS). */
     @Query(value = """
