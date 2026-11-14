@@ -13,6 +13,8 @@ public record EstablecimientoResumenDto(
         String oferente,
         String localidad,
         Coordenadas coordenadas,
+        @io.swagger.v3.oas.annotations.media.Schema(description = "Estado de geocodificación del lugar (null si no tiene lugar o se cargó a mano)")
+        String estadoGeo,
         EstadoPublicacion estadoPublicacion,
         boolean destacado,
         boolean activo,

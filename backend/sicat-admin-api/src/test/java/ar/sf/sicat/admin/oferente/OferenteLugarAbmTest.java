@@ -131,4 +131,26 @@ class OferenteLugarAbmTest extends PruebaAbm {
         delete_("/lugares/" + libre, 204);
         get_("/lugares/" + libre, 404);
     }
+
+    @Test
+    void filtroPorEstadoDeGeocodificacion() throws Exception {
+        long localidad = crearCatalogo("localidad", "\"provincia\":\"Santa Fe\"");
+        long automatico = id(post_("/lugares", """
+                {"nombre":"A","localidadId":%d,"coordenadas":{"lat":-31.63,"lng":-60.70},"estadoGeo":"AUTOMATICO"}
+                """.formatted(localidad), 201));
+        long verificado = id(post_("/lugares", """
+                {"nombre":"B","localidadId":%d,"coordenadas":{"lat":-31.64,"lng":-60.71},"estadoGeo":"VERIFICADO"}
+                """.formatted(localidad), 201));
+
+        assertThat((List<Integer>) leer(get_("/lugares?estadoGeo=AUTOMATICO&localidadId=" + localidad, 200),
+                "$.contenido[*].id")).containsExactly((int) automatico);
+        assertThat((List<Integer>) leer(get_("/lugares?estadoGeo=AUTOMATICO&estadoGeo=VERIFICADO&localidadId=" + localidad, 200),
+                "$.contenido[*].id")).containsExactlyInAnyOrder((int) automatico, (int) verificado);
+
+        // el listado de establecimientos muestra el estado de la ubicación
+        long est = crearEstablecimiento(crearOferente(), automatico);
+        assertThat((List<String>) leer(get_("/establecimientos?localidadId=" + localidad, 200), "$.contenido[*].estadoGeo"))
+                .containsExactly("AUTOMATICO");
+        assertThat(est).isPositive();
+    }
 }

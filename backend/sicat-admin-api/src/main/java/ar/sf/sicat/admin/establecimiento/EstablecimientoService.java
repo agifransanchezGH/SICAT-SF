@@ -168,6 +168,7 @@ public class EstablecimientoService {
                 e.getOferente().getNombre(),
                 l == null || l.getLocalidad() == null ? null : l.getLocalidad().getNombre(),
                 l == null ? null : Geo.coordenadas(l.getPunto()),
+                l == null ? null : l.getEstadoGeo(),
                 e.getEstadoPublicacion(), Boolean.TRUE.equals(e.getDestacado()), Boolean.TRUE.equals(e.getActivo()),
                 nombresCategorias);
     }

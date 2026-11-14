@@ -1,0 +1,46 @@
+/* Estilos comunes de los editores de listas (contactos, horarios, características, etc.) */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.fila {
+  display: flex;
+  gap: 8px 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--sicat-borde);
+
+  mat-form-field {
+    flex: 1 1 160px;
+  }
+}
+
+.mover {
+  display: flex;
+}
+
+.acciones-editor {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.espacio {
+  flex: 1;
+}
+
+.nota {
+  margin: 0;
+  font-size: 13px;
+}
+
+.grupo {
+  margin: 12px 0 0;
+  font: var(--mat-sys-title-small);
+  color: var(--sicat-texto-suave);
+}
