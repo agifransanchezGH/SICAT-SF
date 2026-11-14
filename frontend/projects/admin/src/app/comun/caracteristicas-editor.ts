@@ -35,7 +35,7 @@ interface Seleccion {
           @for (c of g.items; track c.id) {
             <div class="item">
               <mat-checkbox [disabled]="!editable()" [checked]="sel()[c.id]?.marcada ?? false" (change)="marcar(c, $event.checked)">
-                {{ c.nombre }}
+                {{ c.nombre }} @if (c.esPublica === false) { <small class="interna" title="No se muestra en el sitio público">interna</small> }
               </mat-checkbox>
               @if (c.admiteCantidad && sel()[c.id]?.marcada) {
                 <input class="cantidad" type="number" min="0" [disabled]="!editable()" aria-label="Cantidad"
@@ -61,6 +61,7 @@ interface Seleccion {
     .filtro { max-width: 320px; }
     .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0 12px; }
     .item { display: flex; align-items: center; gap: 4px; }
+    .interna { color: var(--sicat-alerta); margin-left: 4px; }
     .cantidad { width: 64px; padding: 4px 6px; border: 1px solid var(--sicat-borde); border-radius: 6px; font: inherit; }
   `,
 })

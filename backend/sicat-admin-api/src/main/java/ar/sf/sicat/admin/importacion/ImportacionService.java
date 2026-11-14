@@ -270,6 +270,7 @@ public class ImportacionService {
             e.setLugar(lugar);
             e.setNombre(Texto.recortar(r.nombre, 300));
             e.setDescripcion(Texto.recortar(r.descripcion, 5000));
+            e.setNotasInternas(r.notasInternas);
             e.setAnioInauguracion(r.anioInauguracion);
             e.setEstadoFuncionamiento(Texto.recortar(r.estadoFuncionamiento, 100));
             e.setEstadoPublicacion(EstadoPublicacion.BORRADOR);
@@ -390,9 +391,18 @@ public class ImportacionService {
                 c.setGrupo(grupo);
                 c.setNombre(nombre);
                 c.setAdmiteCantidad(false);
+                c.setEsPublica(!Internos.grupoInterno(grupo) && !grupoSoloInterno(grupo));
                 c.setActivo(true);
                 return caracteristicas.save(c);
             });
+        }
+
+        /** Un grupo cuyas características existentes son todas internas: las nuevas también lo son. */
+        private boolean grupoSoloInterno(String grupo) {
+            String g = Texto.clave(grupo);
+            List<Caracteristica> delGrupo = caracteristicasPorClave.values().stream()
+                    .filter(c -> Texto.clave(c.getGrupo()).equals(g)).toList();
+            return !delGrupo.isEmpty() && delGrupo.stream().noneMatch(c -> Boolean.TRUE.equals(c.getEsPublica()));
         }
 
         private TipoCanal tipoCanal(String nombre) {

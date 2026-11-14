@@ -45,6 +45,10 @@ public class Establecimiento {
 
     private String descripcion;
 
+    /** Solo para el panel; ninguna vista pública la expone (ADR 0015). */
+    @Column(name = "notas_internas")
+    private String notasInternas;
+
     @Column(name = "anio_inauguracion")
     private Short anioInauguracion;
 

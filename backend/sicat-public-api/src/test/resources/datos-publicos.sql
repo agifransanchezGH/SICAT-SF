@@ -80,8 +80,12 @@ INSERT INTO sicat.canal_contacto (id_establecimiento, id_oferente, id_tipo_canal
 INSERT INTO sicat.caracteristica (id_caracteristica, grupo, nombre, admite_cantidad) OVERRIDING SYSTEM VALUE VALUES
     (100, 'Servicios', 'Wi-Fi', false),
     (101, 'Capacidad', 'Habitaciones', true);
+-- De uso interno (ADR 0015): no debe salir en la ficha.
+INSERT INTO sicat.caracteristica (id_caracteristica, grupo, nombre, admite_cantidad, es_publica) OVERRIDING SYSTEM VALUE VALUES
+    (102, 'Plataformas de venta', 'Booking', false, false);
 INSERT INTO sicat.establecimiento_caracteristica (id_establecimiento, id_caracteristica, cantidad) VALUES
-    (100, 100, NULL), (100, 101, 40);
+    (100, 100, NULL), (100, 101, 40), (100, 102, NULL);
+UPDATE sicat.establecimiento SET notas_internas = 'Cantidad de personal: 12' WHERE id_establecimiento = 100;
 
 INSERT INTO sicat.distincion (id_distincion, nombre, organismo_otorgante) OVERRIDING SYSTEM VALUE VALUES
     (100, 'Excelencia turística', 'Ministerio de Turismo');

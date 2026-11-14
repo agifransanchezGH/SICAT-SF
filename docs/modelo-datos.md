@@ -95,6 +95,7 @@ establecimiento
   FK id_lugar NULL     -> lugar
      nombre                 text
      descripcion            text
+     notas_internas         text NULL   -- solo panel; no sale en vistas públicas (ADR 0015)
      anio_inauguracion      smallint
      estado_funcionamiento  text
      motivo_estado          text NULL
@@ -171,6 +172,7 @@ caracteristica
      grupo             text
      nombre            text
      admite_cantidad   boolean
+     es_publica        boolean   -- false = uso interno, no sale en el sitio público (ADR 0015)
      activo            boolean
 
 categoria_caracteristica          -- qué características aplican a cada categoría

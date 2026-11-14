@@ -20,5 +20,6 @@ public record EstablecimientoSolicitud(
         @Size(max = 500) String motivoEstado,
         LocalDate fechaReapertura,
         @Schema(description = "Por defecto false") Boolean destacado,
-        @Schema(description = "Solo en PUT: true reactiva un establecimiento dado de baja") Boolean activo) {
+        @Schema(description = "Solo en PUT: true reactiva un establecimiento dado de baja") Boolean activo,
+        @Size(max = 20000) @Schema(description = "Solo para el panel; no sale en el sitio público") String notasInternas) {
 }

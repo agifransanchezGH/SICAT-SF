@@ -14,5 +14,6 @@ public record CatalogoItemSolicitud(
         @Size(max = 200) @Schema(description = "Solo distincion") String organismoOtorgante,
         @Size(max = 200) @Schema(description = "Obligatorio en caracteristica") String grupo,
         @Schema(description = "Solo caracteristica (por defecto false)") Boolean admiteCantidad,
+        @Schema(description = "Solo caracteristica: false = de uso interno (por defecto true)") Boolean esPublica,
         @Schema(description = "Solo en PUT: true reactiva el ítem") Boolean activo) {
 }

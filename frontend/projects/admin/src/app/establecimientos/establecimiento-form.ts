@@ -48,6 +48,12 @@ import { LugarDialog } from '../lugares/lugar-dialog';
       <mat-form-field class="ancho-completo">
         <mat-label>Descripción</mat-label>
         <textarea matInput rows="4" formControlName="descripcion"></textarea>
+        <mat-hint>Se muestra en el sitio público</mat-hint>
+      </mat-form-field>
+      <mat-form-field class="ancho-completo">
+        <mat-label>Notas internas</mat-label>
+        <textarea matInput rows="3" formControlName="notasInternas"></textarea>
+        <mat-hint>Solo para el equipo: no se publican</mat-hint>
       </mat-form-field>
       <mat-form-field>
         <mat-label>Año de inauguración</mat-label>
@@ -103,6 +109,7 @@ export class EstablecimientoForm implements OnInit {
     oferenteId: [null as number | null, Validators.required],
     lugarId: [null as number | null],
     descripcion: ['', Validators.maxLength(5000)],
+    notasInternas: ['', Validators.maxLength(20000)],
     anioInauguracion: [null as number | null, [Validators.min(1500), Validators.max(2100)]],
     estadoFuncionamiento: [''],
     motivoEstado: [''],
@@ -118,6 +125,7 @@ export class EstablecimientoForm implements OnInit {
         oferenteId: e.oferente.id,
         lugarId: e.lugar?.id ?? null,
         descripcion: e.descripcion ?? '',
+        notasInternas: e.notasInternas ?? '',
         anioInauguracion: e.anioInauguracion,
         estadoFuncionamiento: e.estadoFuncionamiento ?? '',
         motivoEstado: e.motivoEstado ?? '',
@@ -162,6 +170,7 @@ export class EstablecimientoForm implements OnInit {
       lugarId: f.lugarId,
       nombre: f.nombre.trim(),
       descripcion: f.descripcion || null,
+      notasInternas: f.notasInternas || null,
       anioInauguracion: f.anioInauguracion,
       estadoFuncionamiento: f.estadoFuncionamiento || null,
       motivoEstado: f.motivoEstado || null,

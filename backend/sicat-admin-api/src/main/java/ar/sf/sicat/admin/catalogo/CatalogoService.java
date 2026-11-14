@@ -79,7 +79,7 @@ public class CatalogoService {
                 },
                 s -> localidades.findByNombreIgnoreCaseAndProvinciaIgnoreCase(s.nombre().trim(), s.provincia().trim())
                         .map(Localidad::getId),
-                e -> new CatalogoItemDto(e.getId(), e.getNombre(), e.getActivo(), e.getProvincia(), null, null, null),
+                e -> new CatalogoItemDto(e.getId(), e.getNombre(), e.getActivo(), e.getProvincia(), null, null, null, null),
                 Localidad::setActivo,
                 s -> requerido(s.provincia(), "provincia", "localidad"),
                 POR_NOMBRE));
@@ -92,7 +92,7 @@ public class CatalogoService {
                 },
                 s -> distinciones.findByNombreIgnoreCase(s.nombre().trim()).map(Distincion::getId),
                 e -> new CatalogoItemDto(e.getId(), e.getNombre(), e.getActivo(), null, e.getOrganismoOtorgante(),
-                        null, null),
+                        null, null, null),
                 Distincion::setActivo, s -> { }, POR_NOMBRE));
 
         adaptadores.put(TipoCatalogo.CARACTERISTICA, new Adaptador<>("Característica", caracteristicas,
@@ -102,6 +102,9 @@ public class CatalogoService {
                     e.setGrupo(s.grupo().trim());
                     if (s.admiteCantidad() != null) {
                         e.setAdmiteCantidad(s.admiteCantidad());
+                    }
+                    if (s.esPublica() != null) {
+                        e.setEsPublica(s.esPublica());
                     }
                 },
                 s -> caracteristicas.findByGrupoIgnoreCaseAndNombreIgnoreCase(s.grupo().trim(), s.nombre().trim())
@@ -114,7 +117,7 @@ public class CatalogoService {
 
     public static CatalogoItemDto caracteristica(Caracteristica e) {
         return new CatalogoItemDto(e.getId(), e.getNombre(), e.getActivo(), null, null, e.getGrupo(),
-                e.getAdmiteCantidad());
+                e.getAdmiteCantidad(), e.getEsPublica());
     }
 
     @Transactional(readOnly = true)

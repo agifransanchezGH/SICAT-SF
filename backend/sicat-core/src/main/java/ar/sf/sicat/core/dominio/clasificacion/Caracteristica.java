@@ -32,6 +32,10 @@ public class Caracteristica {
     @Column(name = "admite_cantidad", nullable = false)
     private Boolean admiteCantidad = false;
 
+    /** false = de uso interno: no sale en el sitio público (ADR 0015). */
+    @Column(name = "es_publica", nullable = false)
+    private Boolean esPublica = true;
+
     @Column(nullable = false)
     private Boolean activo = true;
 }
