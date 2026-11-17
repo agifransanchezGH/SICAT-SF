@@ -14,6 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
+import { FiltrosRecordados } from '../core/filtros-recordados';
 import { EMPTY, Subject, catchError, debounceTime, finalize, merge, startWith, switchMap } from 'rxjs';
 
 import { Api } from '../core/api';
@@ -178,16 +179,31 @@ export class LugaresPage {
 
   constructor() {
     const destroy = inject(DestroyRef);
+    // Al volver de un establecimiento (o desde el menú) se restauran los últimos filtros y la página.
+    const recordados = inject(FiltrosRecordados);
+    const g = recordados.leer('lugares');
+    if (g) {
+      this.filtros.setValue({
+        vista: g['vista'] === 'todos' ? 'todos' : 'revisar',
+        q: g['q'] ?? '',
+        estadoGeo: g['estadoGeo'] ?? [], // una lista vacía no se guarda
+        localidadId: g['localidadId'] ?? null,
+      });
+      this.numero = g['pagina'] ?? 0;
+      this.tamanio = g['tamanio'] ?? 20;
+    }
     this.filtros.controls.vista.valueChanges.pipe(takeUntilDestroyed(destroy)).subscribe((v) =>
       this.filtros.controls.estadoGeo.setValue(v === 'revisar' ? A_REVISAR : []),
     );
-    merge(this.filtros.valueChanges.pipe(debounceTime(300), startWith(null)), this.recargar)
+    // startWith(undefined): la primera carga no vuelve a la página 0 (sí los cambios de filtro).
+    merge(this.filtros.valueChanges.pipe(debounceTime(300), startWith(undefined)), this.recargar)
       .pipe(
         switchMap((cambio) => {
           if (cambio !== undefined) {
             this.numero = 0;
           }
           const f = this.filtros.getRawValue();
+          recordados.guardar('lugares', { ...f, pagina: this.numero || null, tamanio: this.tamanio === 20 ? null : this.tamanio });
           this.cargando.set(true);
           return this.api
             .get<Pagina<Lugar>>('/lugares', {
