@@ -65,3 +65,51 @@ export function iconoPin(color = '#d32f2f'): L.DivIcon {
 export function escapar(t: unknown): string {
   return String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
+
+/** Establecimientos que comparten exactamente el mismo punto (p. ej. dos en la misma dirección). */
+export interface GrupoEnPunto<P = Record<string, unknown>> {
+  latlng: L.LatLng;
+  items: P[];
+}
+
+/**
+ * Agrupa los puntos de una colección GeoJSON por coordenadas (a 6 decimales, unos 10 cm):
+ * si no, dos establecimientos en el mismo lugar se dibujan uno encima del otro y solo se puede tocar uno.
+ */
+export function agruparPorPunto<P = Record<string, unknown>>(
+  geo: GeoJSON.FeatureCollection<GeoJSON.Point>,
+): GrupoEnPunto<P>[] {
+  const grupos = new Map<string, GrupoEnPunto<P>>();
+  for (const f of geo.features) {
+    const [lng, lat] = f.geometry.coordinates;
+    const clave = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    let g = grupos.get(clave);
+    if (!g) {
+      g = { latlng: L.latLng(lat, lng), items: [] };
+      grupos.set(clave, g);
+    }
+    g.items.push((f.properties ?? {}) as P);
+  }
+  return [...grupos.values()];
+}
+
+/** Marcador con la cantidad de establecimientos de un mismo punto. */
+export function iconoGrupo(cantidad: number, color = '#1565c0', borde = '#fff'): L.DivIcon {
+  return L.divIcon({
+    className: 'sicat-grupo',
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+      background:${color};border:2px solid ${borde};box-sizing:border-box;color:#fff;font:600 12px/1 sans-serif;
+      box-shadow:0 1px 4px rgb(0 0 0 / 40%)">${cantidad}</span>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -11],
+  });
+}
+
+/** Popup de un grupo: el bloque de cada establecimiento, separados por una línea. */
+export function popupDeGrupo(bloques: string[]): string {
+  return `<div style="font-size:12px;color:#5a626e;margin-bottom:4px">${bloques.length} establecimientos en este lugar</div>` +
+    `<div style="max-height:240px;overflow:auto">` +
+    bloques.map((b, i) => `<div style="${i ? 'border-top:1px solid #ddd;margin-top:6px;padding-top:6px' : ''}">${b}</div>`).join('') +
+    `</div>`;
+}

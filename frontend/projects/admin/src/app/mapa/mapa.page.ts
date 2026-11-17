@@ -9,7 +9,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Router } from '@angular/router';
 import * as L from 'leaflet';
 import { EMPTY, catchError, combineLatest, debounceTime, filter, startWith, switchMap } from 'rxjs';
-import { SicatMapa, escapar } from 'shared';
+import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, popupDeGrupo } from 'shared';
 
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
@@ -57,6 +57,7 @@ const TEXTO_GEO: Record<string, string> = {
         <span>{{ cantidad() }} en el mapa</span>
         @for (e of estados; track e) { <span><i [style.background]="colores[e]"></i> {{ textoEstado[e] }}</span> }
         <span><i class="aro"></i> Ubicación sin verificar</span>
+        <span><i class="grupo">2</i> Varios en el mismo lugar</span>
       </div>
       <sicat-mapa class="tarjeta mapa" (listo)="mapa.set($event)" />
     </section>
@@ -67,6 +68,7 @@ const TEXTO_GEO: Record<string, string> = {
     .leyenda { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-top: -8px; }
     .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
     .leyenda i.aro { background: #fff; border: 3px solid #f9a825; width: 8px; height: 8px; }
+    .leyenda i.grupo { background: #37474f; color: #fff; width: 16px; height: 16px; font: 600 10px/16px sans-serif; text-align: center; font-style: normal; vertical-align: -3px; }
   `,
 })
 export class MapaPage {
@@ -151,28 +153,29 @@ export class MapaPage {
 
   private dibujar(geo: GeoJSON.FeatureCollection<GeoJSON.Point>): void {
     this.puntos.clearLayers();
-    L.geoJSON(geo, {
-      pointToLayer: (f, latlng) => {
-        const p = f.properties ?? {};
-        const sinVerificar = p['estadoGeo'] && p['estadoGeo'] !== 'VERIFICADO';
-        return L.circleMarker(latlng, {
-          radius: 7,
-          color: sinVerificar ? '#f9a825' : '#fff',
-          weight: sinVerificar ? 3 : 2,
-          fillColor: COLOR_ESTADO[p['estadoPublicacion']] ?? '#607d8b',
-          fillOpacity: 0.95,
-        });
-      },
-      onEachFeature: (f, capa) => {
-        const p = f.properties ?? {};
-        capa.bindPopup(
-          `<strong>${escapar(p['nombre'])}</strong>` +
-            `<div>${TEXTO_ESTADO[p['estadoPublicacion']] ?? ''}</div>` +
-            (p['estadoGeo'] ? `<div style="color:#5a626e">${escapar(TEXTO_GEO[p['estadoGeo']] ?? p['estadoGeo'])}</div>` : '') +
-            `<div style="margin-top:6px"><a href="/establecimientos/${p['id']}" data-ruta="/establecimientos/${p['id']}">Abrir ficha</a></div>`,
-        );
-      },
-    }).addTo(this.puntos);
+    const bloque = (p: Record<string, string>) =>
+      `<strong>${escapar(p['nombre'])}</strong>` +
+      `<div>${TEXTO_ESTADO[p['estadoPublicacion']] ?? ''}</div>` +
+      (p['estadoGeo'] ? `<div style="color:#5a626e">${escapar(TEXTO_GEO[p['estadoGeo']] ?? p['estadoGeo'])}</div>` : '') +
+      `<div style="margin-top:6px"><a href="/establecimientos/${escapar(p['id'])}" data-ruta="/establecimientos/${escapar(p['id'])}">Abrir ficha</a></div>`;
+    // Varios establecimientos en el mismo punto: un solo marcador con la cantidad y un popup con todos.
+    for (const g of agruparPorPunto<Record<string, string>>(geo)) {
+      const sinVerificar = g.items.some((p) => p['estadoGeo'] && p['estadoGeo'] !== 'VERIFICADO');
+      const estados = new Set(g.items.map((p) => p['estadoPublicacion']));
+      // Con estados distintos el grupo va en gris oscuro; el popup detalla el de cada uno.
+      const color = estados.size === 1 ? (COLOR_ESTADO[g.items[0]['estadoPublicacion']] ?? '#607d8b') : '#37474f';
+      const capa =
+        g.items.length === 1
+          ? L.circleMarker(g.latlng, {
+              radius: 7,
+              color: sinVerificar ? '#f9a825' : '#fff',
+              weight: sinVerificar ? 3 : 2,
+              fillColor: color,
+              fillOpacity: 0.95,
+            })
+          : L.marker(g.latlng, { icon: iconoGrupo(g.items.length, color, sinVerificar ? '#f9a825' : '#fff') });
+      capa.bindPopup(g.items.length === 1 ? bloque(g.items[0]) : popupDeGrupo(g.items.map(bloque))).addTo(this.puntos);
+    }
     this.cantidad.set(geo.features.length);
     // Sin filtros queda centrado en la ciudad (hay puntos en localidades vecinas); con filtros, encuadra los resultados.
     const f = this.filtros.getRawValue();
