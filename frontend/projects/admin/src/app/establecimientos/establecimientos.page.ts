@@ -69,6 +69,12 @@ import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/mod
             }
           </mat-select>
         </mat-form-field>
+        <mat-form-field>
+          <mat-label>Ubicación</mat-label>
+          <mat-select formControlName="ubicacion" multiple>
+            @for (u of ubicaciones; track u.valor) { <mat-option [value]="u.valor">{{ u.texto }}</mat-option> }
+          </mat-select>
+        </mat-form-field>
         <mat-checkbox formControlName="incluirInactivos">Incluir dados de baja</mat-checkbox>
       </form>
 
@@ -136,6 +142,13 @@ export class EstablecimientosPage {
   protected readonly puedeEditar = inject(AuthService).tieneRol('ADMIN', 'CARGADOR');
 
   protected readonly estados = ESTADOS_PUBLICACION;
+  /** "Sin ubicación": sin lugar o con un lugar sin coordenadas (no encontrado al importar). */
+  protected readonly ubicaciones = [
+    { valor: 'VERIFICADO', texto: 'Verificada' },
+    { valor: 'AUTOMATICO', texto: 'Automática' },
+    { valor: 'APROXIMADO', texto: 'Aproximada' },
+    { valor: 'SIN_UBICACION', texto: 'Sin ubicación' },
+  ];
   protected readonly columnas = ['nombre', 'categorias', 'localidad', 'ubicacion', 'estado'];
   protected readonly localidades = toSignal(this.catalogos.de('localidad'), { initialValue: [] });
   protected readonly pagina = signal<Pagina<EstablecimientoResumen> | null>(null);
@@ -147,6 +160,7 @@ export class EstablecimientosPage {
     estado: this.inicial.get('estado') ?? '',
     categoria: this.inicial.get('categoria') ?? '',
     localidadId: this.inicial.get('localidadId') ?? '',
+    ubicacion: [this.inicial.getAll('ubicacion')],
     incluirInactivos: this.inicial.get('incluirInactivos') === 'true',
   });
 
@@ -173,6 +187,7 @@ export class EstablecimientosPage {
               estado: p.get('estado'),
               categoria: p.get('categoria'),
               localidadId: p.get('localidadId'),
+              ubicacion: p.getAll('ubicacion'),
               incluirInactivos: p.get('incluirInactivos'),
               page: p.get('pagina') ?? 0,
               size: p.get('tamanio') ?? 20,
