@@ -10,14 +10,15 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { EMPTY, catchError, debounceTime, finalize, switchMap } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink, convertToParamMap } from '@angular/router';
+import { EMPTY, catchError, debounceTime, finalize, skip, switchMap } from 'rxjs';
 
 import { Api } from '../core/api';
 import { AuthService } from '../core/auth.service';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { EstadoChip } from '../core/estado';
+import { FiltrosRecordados } from '../core/filtros-recordados';
 import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/modelos';
 
 @Component({
@@ -154,7 +155,15 @@ export class EstablecimientosPage {
   protected readonly pagina = signal<Pagina<EstablecimientoResumen> | null>(null);
   protected readonly cargando = signal(false);
 
-  private readonly inicial = this.route.snapshot.queryParamMap;
+  private readonly recordados = inject(FiltrosRecordados);
+  /**
+   * Si se llega sin filtros (flecha "Volver" del detalle, menú lateral, enlaces) se restauran los últimos
+   * que se usaron, incluida la página: moverse entre establecimientos no pierde la búsqueda.
+   */
+  private readonly restaurados = Object.keys(this.route.snapshot.queryParams).length
+    ? null
+    : this.recordados.leer('establecimientos');
+  private readonly inicial = this.restaurados ? convertToParamMap(this.restaurados) : this.route.snapshot.queryParamMap;
   protected readonly filtros = inject(NonNullableFormBuilder).group({
     q: this.inicial.get('q') ?? '',
     estado: this.inicial.get('estado') ?? '',
@@ -177,9 +186,16 @@ export class EstablecimientosPage {
       }),
     );
 
+    if (this.restaurados) {
+      this.router.navigate([], { queryParams: this.restaurados, replaceUrl: true });
+    }
+
     this.route.queryParamMap
       .pipe(
+        // al restaurar, la primera emisión es la URL vacía: se espera la restaurada
+        skip(this.restaurados ? 1 : 0),
         switchMap((p) => {
+          this.recordados.guardar('establecimientos', Object.fromEntries(p.keys.map((k) => [k, p.getAll(k)])));
           this.cargando.set(true);
           return this.api
             .get<Pagina<EstablecimientoResumen>>('/establecimientos', {

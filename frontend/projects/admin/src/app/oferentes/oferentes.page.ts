@@ -12,6 +12,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { Router, RouterLink } from '@angular/router';
+import { FiltrosRecordados } from '../core/filtros-recordados';
 import { EMPTY, Subject, catchError, debounceTime, finalize, merge, startWith, switchMap } from 'rxjs';
 
 import { Api } from '../core/api';
@@ -98,13 +99,23 @@ export class OferentesPage {
   });
 
   constructor() {
-    merge(this.filtros.valueChanges.pipe(debounceTime(300), startWith(null)), this.recargar)
+    // Al volver de un oferente (o desde el menú) se restauran los últimos filtros y la página.
+    const recordados = inject(FiltrosRecordados);
+    const g = recordados.leer('oferentes');
+    if (g) {
+      this.filtros.patchValue({ q: g['q'] ?? '', tipo: g['tipo'] ?? null, incluirInactivos: !!g['incluirInactivos'] });
+      this.numero = g['pagina'] ?? 0;
+      this.tamanio = g['tamanio'] ?? 20;
+    }
+    // startWith(undefined): la primera carga no vuelve a la página 0 (sí los cambios de filtro).
+    merge(this.filtros.valueChanges.pipe(debounceTime(300), startWith(undefined)), this.recargar)
       .pipe(
         switchMap((cambio) => {
           if (cambio !== undefined) {
             this.numero = 0;
           }
           const f = this.filtros.getRawValue();
+          recordados.guardar('oferentes', { ...f, pagina: this.numero || null, tamanio: this.tamanio === 20 ? null : this.tamanio });
           this.cargando.set(true);
           return this.api
             .get<Pagina<Oferente>>('/oferentes', { ...f, page: this.numero, size: this.tamanio, sort: 'nombre' })
