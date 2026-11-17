@@ -163,5 +163,21 @@ class OferenteLugarAbmTest extends PruebaAbm {
         assertThat((List<String>) leer(get_("/establecimientos?localidadId=" + localidad, 200), "$.contenido[*].estadoGeo"))
                 .containsExactlyInAnyOrder("AUTOMATICO", "VERIFICADO"); // el museo de arriba está en el lugar verificado
         assertThat(est).isPositive();
+
+        // filtro de establecimientos por ubicación (uno o varios valores)
+        long oferente = crearOferente();
+        long enVerificado = crearEstablecimiento(oferente, verificado);
+        long enAutomatico = crearEstablecimiento(oferente, automatico);
+        long sinLugar = crearEstablecimiento(oferente, null);
+        long noEncontrado = id(post_("/lugares", "{\"nombre\":\"C\",\"estadoGeo\":\"NO_ENCONTRADO\"}", 201));
+        long sinCoordenadas = crearEstablecimiento(oferente, noEncontrado);
+        String base = "/establecimientos?oferenteId=" + oferente;
+        assertThat((List<Integer>) leer(get_(base + "&ubicacion=VERIFICADO", 200), "$.contenido[*].id"))
+                .containsExactly((int) enVerificado);
+        assertThat((List<Integer>) leer(get_(base + "&ubicacion=SIN_UBICACION", 200), "$.contenido[*].id"))
+                .containsExactlyInAnyOrder((int) sinLugar, (int) sinCoordenadas);
+        assertThat((List<Integer>) leer(get_(base + "&ubicacion=AUTOMATICO&ubicacion=SIN_UBICACION", 200), "$.contenido[*].id"))
+                .containsExactlyInAnyOrder((int) enAutomatico, (int) sinLugar, (int) sinCoordenadas);
+        assertThat((Integer) leer(get_(base, 200), "$.totalElementos")).isEqualTo(4);
     }
 }

@@ -48,7 +48,7 @@ public class MapaService {
      */
     public ObjectNode establecimientos(String q, Long categoria, EstadoPublicacion estado, Long localidadId, String bbox) {
         List<Establecimiento> lista = establecimientos.findAll(
-                servicio.filtro(q, categoria, estado, null, localidadId, bbox, false), Sort.by("nombre"));
+                servicio.filtro(q, categoria, estado, null, localidadId, bbox, null, false), Sort.by("nombre"));
         ObjectNode coleccion = coleccion();
         ArrayNode features = coleccion.putArray("features");
         for (Establecimiento e : lista) {

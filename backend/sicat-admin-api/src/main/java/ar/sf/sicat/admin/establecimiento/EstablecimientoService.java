@@ -62,19 +62,26 @@ public class EstablecimientoService {
 
     /**
      * Filtros: q (nombre), categoria (incluye sus subcategorías; principal o adicional de una oferta activa),
-     * estado, oferenteId, localidadId (la del lugar), bbox.
+     * estado, oferenteId, localidadId (la del lugar), bbox, ubicacion (uno o varios: VERIFICADO, AUTOMATICO,
+     * APROXIMADO o SIN_UBICACION, que es sin lugar o con un lugar sin coordenadas).
      */
     @Transactional(readOnly = true)
     public PaginaDto<EstablecimientoResumenDto> listar(String q, Long categoria, EstadoPublicacion estado,
                                                        Long oferenteId, Long localidadId, String bbox,
-                                                       boolean incluirInactivos, Pageable pageable) {
+                                                       Set<String> ubicacion, boolean incluirInactivos,
+                                                       Pageable pageable) {
         return PaginaDto.de(establecimientos.findAll(
-                filtro(q, categoria, estado, oferenteId, localidadId, bbox, incluirInactivos), pageable), this::resumen);
+                filtro(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, incluirInactivos), pageable),
+                this::resumen);
     }
+
+    /** Valor del filtro de ubicación que agrupa a los que no tienen lugar o cuyo lugar no tiene coordenadas. */
+    public static final String SIN_UBICACION = "SIN_UBICACION";
 
     /** Filtro del listado; también lo usa el mapa del panel. */
     public Specification<Establecimiento> filtro(String q, Long categoria, EstadoPublicacion estado, Long oferenteId,
-                                                 Long localidadId, String bbox, boolean incluirInactivos) {
+                                                 Long localidadId, String bbox, Set<String> ubicacion,
+                                                 boolean incluirInactivos) {
         Bbox caja = Bbox.parse(bbox);
         List<Long> enCaja = caja == null ? null
                 : establecimientos.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
@@ -96,6 +103,18 @@ public class EstablecimientoService {
             }
             if (enCaja != null) {
                 p.add(enCaja.isEmpty() ? cb.disjunction() : root.get("id").in(enCaja));
+            }
+            if (ubicacion != null && !ubicacion.isEmpty()) {
+                var lugar = root.join("lugar", JoinType.LEFT);
+                List<Predicate> alguna = new ArrayList<>();
+                Set<String> estados = new LinkedHashSet<>(ubicacion);
+                if (estados.remove(SIN_UBICACION)) {
+                    alguna.add(cb.or(cb.isNull(lugar.get("id")), cb.isNull(lugar.get("punto"))));
+                }
+                if (!estados.isEmpty()) {
+                    alguna.add(cb.and(lugar.get("estadoGeo").in(estados), cb.isNotNull(lugar.get("punto"))));
+                }
+                p.add(cb.or(alguna.toArray(Predicate[]::new)));
             }
             if (ramaCategoria != null) {
                 Subquery<Long> sub = query.subquery(Long.class);
