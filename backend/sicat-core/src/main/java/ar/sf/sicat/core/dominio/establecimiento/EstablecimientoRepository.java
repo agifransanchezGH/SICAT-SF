@@ -45,4 +45,24 @@ public interface EstablecimientoRepository
             nativeQuery = true)
     List<Long> idsEnBbox(@Param("minLng") double minLng, @Param("minLat") double minLat,
                          @Param("maxLng") double maxLng, @Param("maxLat") double maxLat);
+
+    /**
+     * Ids de establecimientos con algún contacto que no sirve para armar un buen enlace: Instagram que no es
+     * usuario ni URL del perfil, Facebook que es un nombre y no la URL de la página (o un usuario), web con espacios.
+     * Mismas reglas que {@code problemaDe} en frontend/projects/shared/src/lib/contactos.ts.
+     * (Sin "?" en las expresiones: Hibernate lo tomaría como parámetro.)
+     */
+    @Query(value = """
+            SELECT DISTINCT c.id_establecimiento FROM sicat.canal_contacto c
+            JOIN sicat.tipo_canal t ON t.id_tipo_canal = c.id_tipo_canal
+            WHERE c.id_establecimiento IS NOT NULL AND btrim(c.valor) <> '' AND (
+                 (lower(t.nombre) LIKE '%instagram%'
+                  AND btrim(c.valor) !~* '^(http://|https://|)(www\\.|)instagram\\.com/'
+                  AND btrim(c.valor) !~ '^(@|)[A-Za-z0-9._]{1,30}$')
+              OR (lower(t.nombre) LIKE '%facebook%'
+                  AND btrim(c.valor) !~* '^(http://|https://|)(www\\.|m\\.|web\\.|)(facebook|fb)\\.(com|me)/'
+                  AND btrim(c.valor) !~ '^(@|)[A-Za-z0-9.]{5,}$')
+              OR ((lower(t.nombre) LIKE '%web%' OR lower(t.nombre) LIKE '%sitio%')
+                  AND btrim(c.valor) ~ '[[:space:]]'))""", nativeQuery = true)
+    List<Long> idsConContactosARevisar();
 }

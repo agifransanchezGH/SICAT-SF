@@ -7,10 +7,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Title } from '@angular/platform-browser';
 import { Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
-import { Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario, SicatMapa, iconoPin } from 'shared';
+import { Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario, SicatMapa, enlaceDe, iconoPin } from 'shared';
 
 import { ApiPublicaService } from '../core/api-publica.service';
-import { enlaceDe } from './contacto-link';
+
 
 /** Agrupa franjas por día: "Lunes: 09:00–13:00, 17:00–21:00". */
 export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; franjas: string }[] {
@@ -260,7 +260,7 @@ export class FichaPage {
     return !!e && !e.startsWith('abierto') && !e.startsWith('en funcionamiento') && e !== 'activo';
   });
 
-  protected readonly contactos = computed(() => (this.ficha()?.contactos ?? []).map((c) => ({ ...c, enlace: enlaceDe(c) })));
+  protected readonly contactos = computed(() => (this.ficha()?.contactos ?? []).map((c) => ({ ...c, enlace: enlaceDe(c.tipo, c.valor) })));
 
   protected readonly gruposCaracteristicas = computed(() => {
     const mapa = new Map<string, Caracteristica[]>();

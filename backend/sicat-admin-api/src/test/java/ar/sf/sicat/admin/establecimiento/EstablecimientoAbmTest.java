@@ -152,4 +152,34 @@ class EstablecimientoAbmTest extends PruebaAbm {
         assertThat((String) leer(historial, "$[0].accion")).isEqualTo("ALTA");
         assertThat((String) leer(historial, "$[0].usuario.email")).isEqualTo(ADMIN_EMAIL);
     }
+
+    @Test
+    void filtroDeContactosARevisar() throws Exception {
+        long instagram = id(post_("/catalogos/tipo-canal", "{\"nombre\":\"%s\"}".formatted(unico("Instagram")), 201));
+        long facebook = id(post_("/catalogos/tipo-canal", "{\"nombre\":\"%s\"}".formatted(unico("Facebook")), 201));
+        long web = id(post_("/catalogos/tipo-canal", "{\"nombre\":\"%s\"}".formatted(unico("Web")), 201));
+        long oferente = crearOferente();
+        long bien = crearEstablecimiento(oferente, null);
+        long nombreFacebook = crearEstablecimiento(oferente, null);
+        long instagramConEspacios = crearEstablecimiento(oferente, null);
+        long webConEspacios = crearEstablecimiento(oferente, null);
+
+        put_("/establecimientos/" + bien + "/contactos", """
+                [{"tipoCanalId":%d,"valor":"@el.rancho_1"},
+                 {"tipoCanalId":%d,"valor":"https://www.facebook.com/paradorsantafe/"},
+                 {"tipoCanalId":%d,"valor":"teatro.delaabadia"},
+                 {"tipoCanalId":%d,"valor":"www.ejemplo.com.ar"}]
+                """.formatted(instagram, facebook, facebook, web), 200);
+        put_("/establecimientos/" + nombreFacebook + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"Hotel Bertaina\"}]".formatted(facebook), 200);
+        put_("/establecimientos/" + instagramConEspacios + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"onesix Roof\"}]".formatted(instagram), 200);
+        put_("/establecimientos/" + webConEspacios + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"capital.cultura/museos y salas\"}]".formatted(web), 200);
+
+        assertThat((List<Integer>) leer(get_("/establecimientos?contactosARevisar=true&oferenteId=" + oferente, 200),
+                "$.contenido[*].id"))
+                .containsExactlyInAnyOrder((int) nombreFacebook, (int) instagramConEspacios, (int) webConEspacios);
+        assertThat((Integer) leer(get_("/establecimientos?oferenteId=" + oferente, 200), "$.totalElementos")).isEqualTo(4);
+    }
 }

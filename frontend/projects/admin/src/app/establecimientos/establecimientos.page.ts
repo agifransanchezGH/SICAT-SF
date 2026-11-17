@@ -76,6 +76,8 @@ import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/mod
             @for (u of ubicaciones; track u.valor) { <mat-option [value]="u.valor">{{ u.texto }}</mat-option> }
           </mat-select>
         </mat-form-field>
+        <mat-checkbox formControlName="contactosARevisar"
+                      title="Instagram o Facebook que no es un usuario ni una URL, o web con espacios">Contactos a revisar</mat-checkbox>
         <mat-checkbox formControlName="incluirInactivos">Incluir dados de baja</mat-checkbox>
       </form>
 
@@ -170,6 +172,7 @@ export class EstablecimientosPage {
     categoria: this.inicial.get('categoria') ?? '',
     localidadId: this.inicial.get('localidadId') ?? '',
     ubicacion: [this.inicial.getAll('ubicacion')],
+    contactosARevisar: this.inicial.get('contactosARevisar') === 'true',
     incluirInactivos: this.inicial.get('incluirInactivos') === 'true',
   });
 
@@ -180,7 +183,12 @@ export class EstablecimientosPage {
     // Los filtros viven en la URL: al volver del detalle se conserva la búsqueda.
     this.filtros.valueChanges.pipe(debounceTime(300), takeUntilDestroyed(destroy)).subscribe((f) =>
       this.router.navigate([], {
-        queryParams: { ...f, incluirInactivos: f.incluirInactivos || null, pagina: null },
+        queryParams: {
+          ...f,
+          contactosARevisar: f.contactosARevisar || null,
+          incluirInactivos: f.incluirInactivos || null,
+          pagina: null,
+        },
         queryParamsHandling: 'merge',
         replaceUrl: true,
       }),
@@ -204,6 +212,7 @@ export class EstablecimientosPage {
               categoria: p.get('categoria'),
               localidadId: p.get('localidadId'),
               ubicacion: p.getAll('ubicacion'),
+              contactosARevisar: p.get('contactosARevisar'),
               incluirInactivos: p.get('incluirInactivos'),
               page: p.get('pagina') ?? 0,
               size: p.get('tamanio') ?? 20,
