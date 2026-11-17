@@ -18,4 +18,5 @@ Al publicar los primeros establecimientos (ADR 0012) se vio que la importación 
 ## Consecuencias
 - Cambia el modelo de datos (`docs/modelo-datos.md`): dos columnas nuevas.
 - El criterio de párrafos internos vive en dos lugares (la migración, ya aplicada, y `Internos.java`); si se ajusta, cambiar `Internos.java` y, si hace falta, otra migración para lo ya cargado.
+- **Subcategorías con texto pegado**: si la celda de categoría supera 60 caracteres y tiene coma (caso ABRAXAS: "Espacio privado particular, SE REALIZAN TALLERES…"), la importación toma como subcategoría lo anterior a la primera coma y manda el resto a la descripción (`Interprete.fijarSubcategoria`). Lo ya importado se corrigió a mano.
 - Quedan casos dudosos para revisar a mano (p. ej. "Sí marcó otros, detallar" a veces es información útil). Se corrigen desde el panel moviendo el texto entre descripción y notas internas.
