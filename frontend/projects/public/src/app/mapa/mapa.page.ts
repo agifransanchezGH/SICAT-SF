@@ -7,7 +7,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { EMPTY, catchError, combineLatest, filter, switchMap } from 'rxjs';
-import { SicatMapa, escapar } from 'shared';
+import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, popupDeGrupo } from 'shared';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiPublicaService } from '../core/api-publica.service';
@@ -114,25 +114,24 @@ export class MapaPage {
   private dibujarPuntos(geo: GeoJSON.FeatureCollection<GeoJSON.Point>): void {
     const m = this.mapa()!;
     this.puntos.clearLayers();
-    L.geoJSON(geo, {
-      pointToLayer: (f, latlng) =>
-        L.circleMarker(latlng, {
-          radius: f.properties?.['destacado'] ? 9 : 7,
-          color: '#fff',
-          weight: 2,
-          fillColor: f.properties?.['destacado'] ? '#c79100' : '#1565c0',
-          fillOpacity: 0.95,
-        }),
-      onEachFeature: (f, capa) => {
-        const p = f.properties ?? {};
-        const cats = ((p['categorias'] ?? []) as string[]).join(' · ');
-        capa.bindPopup(
-          `<strong>${escapar(p['nombre'])}</strong>` +
-            (cats ? `<div style="color:#5a626e;margin-top:2px">${escapar(cats)}</div>` : '') +
-            `<div style="margin-top:6px"><a href="/establecimientos/${p['id']}" data-id="${p['id']}">Ver ficha</a></div>`,
-        );
-      },
-    }).addTo(this.puntos);
+    const bloque = (p: Record<string, unknown>) => {
+      const cats = ((p['categorias'] ?? []) as string[]).join(' · ');
+      return (
+        `<strong>${escapar(p['nombre'])}</strong>` +
+        (cats ? `<div style="color:#5a626e;margin-top:2px">${escapar(cats)}</div>` : '') +
+        `<div style="margin-top:6px"><a href="/establecimientos/${escapar(p['id'])}" data-id="${escapar(p['id'])}">Ver ficha</a></div>`
+      );
+    };
+    // Varios establecimientos en el mismo punto: un solo marcador con la cantidad y un popup con todos.
+    for (const g of agruparPorPunto(geo)) {
+      const destacado = g.items.some((p) => p['destacado']);
+      const color = destacado ? '#c79100' : '#1565c0';
+      const capa =
+        g.items.length === 1
+          ? L.circleMarker(g.latlng, { radius: destacado ? 9 : 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 0.95 })
+          : L.marker(g.latlng, { icon: iconoGrupo(g.items.length, color) });
+      capa.bindPopup(g.items.length === 1 ? bloque(g.items[0]) : popupDeGrupo(g.items.map(bloque))).addTo(this.puntos);
+    }
     this.cantidad.set(geo.features.length);
     // Encuadra los resultados al cambiar los filtros (no en cada paneo).
     if (geo.features.length) {
