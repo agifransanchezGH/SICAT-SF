@@ -60,8 +60,13 @@ public class LugarService {
             List<Predicate> p = new ArrayList<>();
             if (q != null && !q.isBlank()) {
                 String patron = "%" + q.trim().toLowerCase() + "%";
+                // También por el nombre de un establecimiento ubicado ahí (muchos lugares se llaman como su dirección).
+                var sub = query.subquery(Long.class);
+                var est = sub.from(ar.sf.sicat.core.dominio.establecimiento.Establecimiento.class);
+                sub.select(est.get("lugar").get("id")).where(cb.like(cb.lower(est.get("nombre")), patron));
                 p.add(cb.or(cb.like(cb.lower(root.get("nombre")), patron),
-                        cb.like(cb.lower(root.get("calle")), patron)));
+                        cb.like(cb.lower(root.get("calle")), patron),
+                        root.get("id").in(sub)));
             }
             if (tipoLugarId != null) {
                 p.add(cb.equal(root.get("tipoLugar").get("id"), tipoLugarId));
@@ -152,6 +157,11 @@ public class LugarService {
                 l.getLocalidad() == null ? null : l.getLocalidad().getId(),
                 l.getLocalidad() == null ? null : l.getLocalidad().getNombre(),
                 l.getCalle(), l.getAltura(), l.getKm(), l.getCalleCruce(), l.getComplemento(),
-                Geo.coordenadas(l.getPunto()), GeoJson.aGeoJson(l.getGeometria()), l.getEstadoGeo(), hijos);
+                Geo.coordenadas(l.getPunto()), GeoJson.aGeoJson(l.getGeometria()), l.getEstadoGeo(), hijos,
+                l.getId() == null ? List.of() : establecimientos.findByLugarId(l.getId()).stream()
+                        .sorted(java.util.Comparator.comparing(e -> e.getNombre(), String.CASE_INSENSITIVE_ORDER))
+                        .map(e -> new LugarDto.EstablecimientoRef(e.getId(), e.getNombre(), e.getEstadoPublicacion(),
+                                Boolean.TRUE.equals(e.getActivo())))
+                        .toList());
     }
 }

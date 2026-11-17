@@ -13,6 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { EMPTY, Subject, catchError, debounceTime, finalize, merge, startWith, switchMap } from 'rxjs';
 
 import { Api } from '../core/api';
@@ -33,7 +34,7 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
 @Component({
   selector: 'app-lugares-page',
   imports: [
-    ReactiveFormsModule, DecimalPipe, EstadoChip, MatTableModule, MatPaginatorModule, MatFormFieldModule, MatInputModule,
+    ReactiveFormsModule, DecimalPipe, RouterLink, EstadoChip, MatTableModule, MatPaginatorModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressBarModule, MatTooltipModule,
   ],
   template: `
@@ -50,7 +51,7 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
           <mat-button-toggle value="todos">Todos</mat-button-toggle>
         </mat-button-toggle-group>
         <mat-form-field class="busqueda">
-          <mat-label>Buscar por nombre o calle</mat-label>
+          <mat-label>Buscar por nombre, calle o establecimiento</mat-label>
           <mat-icon matPrefix>search</mat-icon>
           <input matInput formControlName="q" />
         </mat-form-field>
@@ -87,6 +88,20 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
           <ng-container matColumnDef="direccion">
             <th mat-header-cell *matHeaderCellDef>Dirección</th>
             <td mat-cell *matCellDef="let l">{{ direccion(l) }}</td>
+          </ng-container>
+          <ng-container matColumnDef="establecimientos">
+            <th mat-header-cell *matHeaderCellDef>Establecimientos</th>
+            <td mat-cell *matCellDef="let l" class="establecimientos">
+              @for (e of l.establecimientos ?? []; track e.id) {
+                <div>
+                  <a [routerLink]="['/establecimientos', e.id]" [class.baja]="!e.activo">{{ e.nombre }}</a>
+                  @if (e.estadoPublicacion === 'PUBLICADO') { <mat-icon inline class="publicado" matTooltip="Publicado">public</mat-icon> }
+                  @if (!e.activo) { <span class="suave"> (de baja)</span> }
+                </div>
+              } @empty {
+                <span class="suave">Ninguno</span>
+              }
+            </td>
           </ng-container>
           <ng-container matColumnDef="coordenadas">
             <th mat-header-cell *matHeaderCellDef>Coordenadas</th>
@@ -131,6 +146,9 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
     .ayuda { margin: -8px 0 0; }
     .ayuda mat-icon { vertical-align: -3px; }
     .acciones-celda { white-space: nowrap; text-align: right; }
+    .establecimientos { max-width: 280px; }
+    .establecimientos a.baja { text-decoration: line-through; }
+    .establecimientos .publicado { color: var(--sicat-ok); vertical-align: -2px; margin-left: 2px; }
   `,
 })
 export class LugaresPage {
@@ -144,7 +162,7 @@ export class LugaresPage {
 
   protected readonly localidades = toSignal(inject(Catalogos).de('localidad'), { initialValue: [] });
   protected readonly estadosGeo = ESTADOS_GEO;
-  protected readonly columnas = ['nombre', 'direccion', 'coordenadas', 'estado', 'acciones'];
+  protected readonly columnas = ['nombre', 'direccion', 'establecimientos', 'coordenadas', 'estado', 'acciones'];
   protected readonly pagina = signal<Pagina<Lugar> | null>(null);
   protected readonly cargando = signal(false);
   protected tamanio = 20;

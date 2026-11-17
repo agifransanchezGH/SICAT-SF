@@ -39,7 +39,7 @@ public class LugarController {
     @GetMapping
     @PreAuthorize(Roles.LECTURA)
     @Operation(summary = "Lista lugares",
-            description = "Paginado. Filtros: q (nombre o calle), tipoLugar, padreId, localidadId, bbox, estadoGeo (uno o varios).")
+            description = "Paginado. Filtros: q (nombre, calle o nombre de un establecimiento ubicado ahí), tipoLugar, padreId, localidadId, bbox, estadoGeo (uno o varios).")
     public PaginaDto<LugarDto> listar(
             @RequestParam(required = false) String q,
             @Parameter(description = "Id del tipo de lugar") @RequestParam(required = false) Long tipoLugar,

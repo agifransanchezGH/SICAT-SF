@@ -27,8 +27,15 @@ public record LugarDto(
         Coordenadas coordenadas,
         @Schema(description = "Geometría GeoJSON (polígono, línea, etc.)") JsonNode geometria,
         String estadoGeo,
-        @Schema(description = "Solo en el detalle") List<LugarRef> hijos) {
+        @Schema(description = "Solo en el detalle") List<LugarRef> hijos,
+        @Schema(description = "Establecimientos ubicados en este lugar (activos y dados de baja)")
+        List<EstablecimientoRef> establecimientos) {
 
     public record LugarRef(Long id, String nombre) {
+    }
+
+    public record EstablecimientoRef(Long id, String nombre,
+                                     ar.sf.sicat.core.dominio.establecimiento.EstadoPublicacion estadoPublicacion,
+                                     boolean activo) {
     }
 }

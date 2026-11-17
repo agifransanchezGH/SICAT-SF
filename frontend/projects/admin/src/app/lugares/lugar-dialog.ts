@@ -12,6 +12,7 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { ESTADOS_GEO, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
+import { RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { SANTA_FE, SicatMapa, iconoPin } from 'shared';
 
@@ -24,7 +25,7 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
  */
 @Component({
   selector: 'app-lugar-dialog',
-  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, SelectorRemoto, SicatMapa],
+  imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, SelectorRemoto, SicatMapa, RouterLink],
   template: `
     <h2 mat-dialog-title>{{ lugar ? 'Editar lugar' : 'Nuevo lugar' }}</h2>
     <mat-dialog-content>
@@ -87,6 +88,14 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
           </mat-select>
           <mat-hint>Para publicar tiene que estar "Verificado"</mat-hint>
         </mat-form-field>
+        @if (lugar?.establecimientos?.length) {
+          <div class="ancho-completo relacionados">
+            <strong>Establecimientos en este lugar:</strong>
+            @for (e of lugar!.establecimientos!; track e.id) {
+              <a [routerLink]="['/establecimientos', e.id]" mat-dialog-close>{{ e.nombre }}</a>{{ e.activo ? '' : ' (de baja)' }}{{ $last ? '' : ' · ' }}
+            }
+          </div>
+        }
         <div class="ancho-completo">
           <p class="suave ayuda-mapa">Tocá el mapa o arrastrá el pin para marcar la ubicación exacta.</p>
           <sicat-mapa class="mapa" [centro]="centroInicial" [zoom]="lugar?.coordenadas ? 17 : 13" (listo)="alListo($event)" />
@@ -105,6 +114,7 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
     .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; padding-top: 4px; }
     .ancho-completo { grid-column: 1 / -1; }
     .ayuda-mapa { margin: 4px 0 6px; font-size: 13px; }
+    .relacionados { font-size: 14px; padding: 4px 0; }
     .mapa { height: 280px; border-radius: 8px; overflow: hidden; border: 1px solid var(--sicat-borde); }
   `,
 })
