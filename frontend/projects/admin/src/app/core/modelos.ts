@@ -212,6 +212,8 @@ export interface Lugar {
   geometria?: unknown;
   estadoGeo?: EstadoGeo;
   hijos?: Ref[];
+  /** Establecimientos ubicados en este lugar. */
+  establecimientos?: { id: number; nombre: string; estadoPublicacion: EstadoPublicacion; activo: boolean }[];
 }
 
 export type Rol = 'ADMIN' | 'CARGADOR' | 'CONSULTA';

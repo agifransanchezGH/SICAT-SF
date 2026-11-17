@@ -147,10 +147,21 @@ class OferenteLugarAbmTest extends PruebaAbm {
         assertThat((List<Integer>) leer(get_("/lugares?estadoGeo=AUTOMATICO&estadoGeo=VERIFICADO&localidadId=" + localidad, 200),
                 "$.contenido[*].id")).containsExactlyInAnyOrder((int) automatico, (int) verificado);
 
+        // el lugar lista sus establecimientos y se encuentra por el nombre de uno de ellos
+        String nombreEst = unico("Museo Ubicado");
+        long museo = id(post_("/establecimientos", "{\"oferenteId\":%d,\"lugarId\":%d,\"nombre\":\"%s\"}"
+                .formatted(crearOferente(), verificado, nombreEst), 201));
+        // el sufijo único (sin espacios) alcanza para buscar; el nombre del lugar es "B", no lo contiene
+        String lista = get_("/lugares?localidadId=%d&q=%s".formatted(localidad, nombreEst.substring(nombreEst.lastIndexOf(' ') + 1)), 200);
+        assertThat((List<Integer>) leer(lista, "$.contenido[*].id")).containsExactly((int) verificado);
+        assertThat((List<Integer>) leer(lista, "$.contenido[0].establecimientos[*].id")).containsExactly((int) museo);
+        assertThat((String) leer(lista, "$.contenido[0].establecimientos[0].estadoPublicacion")).isEqualTo("BORRADOR");
+        assertThat((List<Object>) leer(get_("/lugares/" + automatico, 200), "$.establecimientos")).isEmpty();
+
         // el listado de establecimientos muestra el estado de la ubicación
         long est = crearEstablecimiento(crearOferente(), automatico);
         assertThat((List<String>) leer(get_("/establecimientos?localidadId=" + localidad, 200), "$.contenido[*].estadoGeo"))
-                .containsExactly("AUTOMATICO");
+                .containsExactlyInAnyOrder("AUTOMATICO", "VERIFICADO"); // el museo de arriba está en el lugar verificado
         assertThat(est).isPositive();
     }
 }
