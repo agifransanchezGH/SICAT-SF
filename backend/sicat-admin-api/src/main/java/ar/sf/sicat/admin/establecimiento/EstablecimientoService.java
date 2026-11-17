@@ -63,15 +63,17 @@ public class EstablecimientoService {
     /**
      * Filtros: q (nombre), categoria (incluye sus subcategorías; principal o adicional de una oferta activa),
      * estado, oferenteId, localidadId (la del lugar), bbox, ubicacion (uno o varios: VERIFICADO, AUTOMATICO,
-     * APROXIMADO o SIN_UBICACION, que es sin lugar o con un lugar sin coordenadas).
+     * APROXIMADO o SIN_UBICACION, que es sin lugar o con un lugar sin coordenadas), contactosARevisar
+     * (algún contacto de Instagram, Facebook o web con el que no se puede armar un buen enlace).
      */
     @Transactional(readOnly = true)
     public PaginaDto<EstablecimientoResumenDto> listar(String q, Long categoria, EstadoPublicacion estado,
                                                        Long oferenteId, Long localidadId, String bbox,
-                                                       Set<String> ubicacion, boolean incluirInactivos,
-                                                       Pageable pageable) {
+                                                       Set<String> ubicacion, boolean contactosARevisar,
+                                                       boolean incluirInactivos, Pageable pageable) {
         return PaginaDto.de(establecimientos.findAll(
-                filtro(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, incluirInactivos), pageable),
+                filtro(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, contactosARevisar,
+                        incluirInactivos), pageable),
                 this::resumen);
     }
 
@@ -81,8 +83,9 @@ public class EstablecimientoService {
     /** Filtro del listado; también lo usa el mapa del panel. */
     public Specification<Establecimiento> filtro(String q, Long categoria, EstadoPublicacion estado, Long oferenteId,
                                                  Long localidadId, String bbox, Set<String> ubicacion,
-                                                 boolean incluirInactivos) {
+                                                 boolean contactosARevisar, boolean incluirInactivos) {
         Bbox caja = Bbox.parse(bbox);
+        List<Long> aRevisar = contactosARevisar ? establecimientos.idsConContactosARevisar() : null;
         List<Long> enCaja = caja == null ? null
                 : establecimientos.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
         Set<Long> ramaCategoria = categoria == null ? null : categorias.conDescendientes(categoria);
@@ -103,6 +106,9 @@ public class EstablecimientoService {
             }
             if (enCaja != null) {
                 p.add(enCaja.isEmpty() ? cb.disjunction() : root.get("id").in(enCaja));
+            }
+            if (aRevisar != null) {
+                p.add(aRevisar.isEmpty() ? cb.disjunction() : root.get("id").in(aRevisar));
             }
             if (ubicacion != null && !ubicacion.isEmpty()) {
                 var lugar = root.join("lugar", JoinType.LEFT);

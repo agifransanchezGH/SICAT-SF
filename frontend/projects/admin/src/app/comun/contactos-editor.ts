@@ -12,6 +12,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { CanalContacto } from '../core/modelos';
+import { ayudaDe, enlaceDe, problemaDe } from 'shared';
 
 /** Canales de contacto de un establecimiento o de un oferente. Se guarda la lista completa (PUT). */
 @Component({
@@ -27,9 +28,24 @@ import { CanalContacto } from '../core/modelos';
               @for (t of tipos(); track t.id) { <mat-option [value]="t.id">{{ t.nombre }}</mat-option> }
             </mat-select>
           </mat-form-field>
-          <mat-form-field class="valor">
+          @let tipo = nombreTipo(fila.controls.tipoCanalId.value);
+          @let valor = fila.controls.valor.value;
+          @let problema = problemaDe(tipo, valor);
+          @let enlace = valor.trim() ? enlaceDe(tipo, valor) : null;
+          <mat-form-field class="valor" subscriptSizing="dynamic">
             <mat-label>Valor</mat-label>
             <input matInput formControlName="valor" />
+            @if (enlace?.href) {
+              <a matIconSuffix mat-icon-button [href]="enlace!.href" target="_blank" rel="noopener"
+                 [attr.aria-label]="'Probar enlace: ' + enlace!.href" [title]="'Probar enlace: ' + enlace!.href">
+                <mat-icon>open_in_new</mat-icon>
+              </a>
+            }
+            @if (problema) {
+              <mat-hint class="aviso">{{ problema }}</mat-hint>
+            } @else if (ayudaDe(tipo); as ayuda) {
+              <mat-hint>{{ ayuda }}</mat-hint>
+            }
           </mat-form-field>
           <mat-form-field class="uso">
             <mat-label>Uso</mat-label>
@@ -57,7 +73,7 @@ import { CanalContacto } from '../core/modelos';
     </div>
   `,
   styleUrl: './editores.scss',
-  styles: `.tipo { width: 170px; } .valor { flex: 2 1 220px; } .uso { flex: 1 1 160px; }`,
+  styles: `.tipo { width: 170px; } .valor { flex: 2 1 220px; } .uso { flex: 1 1 160px; } .aviso { color: #b26a00; }`,
 })
 export class ContactosEditor implements OnInit {
   private readonly api = inject(Api);
@@ -71,6 +87,13 @@ export class ContactosEditor implements OnInit {
   protected readonly tipos = toSignal(inject(Catalogos).de('tipo-canal'), { initialValue: [] });
   protected readonly filas = new FormArray<ReturnType<ContactosEditor['fila']>>([]);
   protected readonly guardando = signal(false);
+  protected readonly enlaceDe = enlaceDe;
+  protected readonly ayudaDe = ayudaDe;
+  protected readonly problemaDe = problemaDe;
+
+  protected nombreTipo(id: number | null): string {
+    return this.tipos().find((t) => t.id === id)?.nombre ?? '';
+  }
 
   ngOnInit(): void {
     this.api.get<CanalContacto[]>(this.ruta()).subscribe({ next: (l) => this.cargar(l), error: (e) => this.avisos.error(e) });
