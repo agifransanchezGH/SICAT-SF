@@ -78,7 +78,7 @@ final class Interprete {
         switch (config.tipo()) {
             case GASTRONOMIA -> {
                 r.nombre = c.tomar("TITULO", "NOMBRE");
-                r.subcategoria = capitalizar(c.tomar("CATEGORIA"));
+                fijarSubcategoria(r, c.tomar("CATEGORIA"));
                 for (String cocina : Texto.lista(c.tomar("SUBTITULO"))) {
                     r.agregarCaracteristica("Tipo de cocina", cocina, null);
                 }
@@ -161,7 +161,7 @@ final class Interprete {
                 r.nombre = nombre;
                 r.direccion = direccion;
                 r.categoria = config.categoria();
-                r.subcategoria = capitalizar(c.tomar("CATEGORIZACION"));
+                fijarSubcategoria(r, c.tomar("CATEGORIZACION"));
                 r.anioInauguracion = Texto.anio(c.tomar("ANO DE INAUGURACION")).orElse(null);
                 porEstablecimiento.put(clave, r);
             } else {
@@ -329,6 +329,24 @@ final class Interprete {
             return a;
         }
         return a == null ? b : a + " · " + b;
+    }
+
+    /** Más largo que esto, la celda de categoría trae texto descriptivo pegado. */
+    static final int MAXIMO_SUBCATEGORIA = 60;
+
+    /**
+     * Toma la subcategoría de la celda. Si es larga y tiene coma (p. ej. "Espacio privado particular, SE REALIZAN
+     * TALLERES…"), la subcategoría es lo anterior a la primera coma y el resto va a la descripción.
+     */
+    static void fijarSubcategoria(Registro r, String celda) {
+        String texto = Texto.limpio(celda);
+        int coma = texto == null ? -1 : texto.indexOf(',');
+        if (texto != null && texto.length() > MAXIMO_SUBCATEGORIA && coma > 0) {
+            r.subcategoria = capitalizar(texto.substring(0, coma));
+            r.agregarDescripcion(null, texto.substring(coma + 1).trim());
+        } else {
+            r.subcategoria = capitalizar(texto);
+        }
     }
 
     static String capitalizar(String s) {
