@@ -46,11 +46,19 @@ html {
   }
 }
 
+/* overflow: clip recorta las esquinas sin crear un contenedor de scroll: así funciona position: sticky adentro */
 .tarjeta {
   background: var(--mat-sys-surface);
   border: 1px solid var(--sicat-borde);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: clip;
+}
+
+/* Lo mismo para el cuerpo de las pestañas de Material (p. ej. la cabecera fija del editor de características) */
+.mat-mdc-tab-body-wrapper,
+.mat-mdc-tab-body.mat-mdc-tab-body-active,
+.mat-mdc-tab-body-content {
+  overflow: clip !important;
 }
 
 .tabla {

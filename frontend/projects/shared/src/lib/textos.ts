@@ -1,3 +1,35 @@
+/**
+ * Texto para comparar o buscar: sin acentos, minúsculas, sin puntuación, espacios simples. Es la misma regla
+ * que `Texto.clave` del backend, así lo que el panel considera igual coincide con lo que considera la importación.
+ */
+export function normalizar(s: string | null | undefined): string {
+  return (s ?? '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9ñ]+/g, ' ')
+    .trim();
+}
+
+/** Parecido entre dos textos ya normalizados, de 0 a 1 (distancia de Levenshtein relativa). */
+export function similitud(a: string, b: string): number {
+  if (a === b) {
+    return 1;
+  }
+  if (!a.length || !b.length) {
+    return 0;
+  }
+  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const actual = [i];
+    for (let j = 1; j <= b.length; j++) {
+      actual[j] = Math.min(previa[j] + 1, actual[j - 1] + 1, previa[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    previa = actual;
+  }
+  return 1 - previa[b.length] / Math.max(a.length, b.length);
+}
+
 const MENORES = new Set(['de', 'del', 'la', 'las', 'los', 'el', 'y', 'e', 'en', 'a', 'al', 'con', 'por', 'para', 'o', 'u']);
 const ROMANO = /^(?=[ivxlcdm]+$)m{0,3}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$/i;
 

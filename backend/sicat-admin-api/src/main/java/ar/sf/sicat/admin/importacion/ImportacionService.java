@@ -385,8 +385,26 @@ public class ImportacionService {
             });
         }
 
+        /**
+         * Busca la característica por clave exacta; si no está, reutiliza una del mismo grupo con el mismo nombre
+         * salvo un error de tipeo o un plural (Texto.mismaCaracteristica). Recién si no hay ninguna, la crea.
+         */
         private Caracteristica caracteristica(String grupo, String nombre) {
-            return caracteristicasPorClave.computeIfAbsent(Texto.clave(grupo) + "|" + Texto.clave(nombre), k -> {
+            String clave = Texto.clave(grupo) + "|" + Texto.clave(nombre);
+            Caracteristica exacta = caracteristicasPorClave.get(clave);
+            if (exacta != null) {
+                return exacta;
+            }
+            String prefijo = Texto.clave(grupo) + "|";
+            Caracteristica parecida = caracteristicasPorClave.entrySet().stream()
+                    .filter(e -> e.getKey().startsWith(prefijo) && Texto.mismaCaracteristica(e.getValue().getNombre(), nombre))
+                    .map(Map.Entry::getValue)
+                    .findFirst().orElse(null);
+            if (parecida != null) {
+                caracteristicasPorClave.put(clave, parecida);
+                return parecida;
+            }
+            return caracteristicasPorClave.computeIfAbsent(clave, k -> {
                 Caracteristica c = new Caracteristica();
                 c.setGrupo(grupo);
                 c.setNombre(nombre);

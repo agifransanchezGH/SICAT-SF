@@ -239,6 +239,14 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | GET | `/categorias/{id}/caracteristicas` | Características que aplican a la categoría | todos |
 | PUT | `/categorias/{id}/caracteristicas` | Reemplaza la lista | ADMIN |
 
+### Limpieza de características (ADR 0017)
+| Método | Ruta | Descripción | Rol |
+|---|---|---|---|
+| GET | `/caracteristicas/uso` | Características con cuántos establecimientos, salones y categorías las usan (filtro `grupo`) | ADMIN |
+| POST | `/caracteristicas/fusiones` | Fusiona varias del mismo grupo en una (reasigna sin duplicar y borra las absorbidas) | ADMIN |
+| POST | `/caracteristicas/{id}/separacion` | Separa una entrada pegada en varias, con los mismos usos | ADMIN |
+| POST | `/caracteristicas/{id}/a-notas-internas` | Pasa a notas internas de cada establecimiento y la borra | ADMIN |
+
 ### Oferentes
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|

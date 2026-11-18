@@ -265,7 +265,15 @@ final class Interprete {
             if (comoCaracteristicas && grupo != null) {
                 Texto.lista(valor).stream()
                         .filter(v -> !Set.of("no", "otro", "otros", "otra", "otras").contains(Texto.clave(v)))
-                        .forEach(v -> r.agregarCaracteristica(grupo, v.replaceAll("[:\\s]+$", ""), null));
+                        .forEach(v -> {
+                            String n = v.replaceAll("[:\\s]+$", "");
+                            // Una dirección cargada en una lista de características va a notas internas (ADR 0017).
+                            if (Texto.pareceDireccion(n)) {
+                                r.agregarNotaInterna(grupo + ": " + n);
+                            } else {
+                                r.agregarCaracteristica(grupo, n, null);
+                            }
+                        });
             } else if (comoCaracteristicas && Texto.afirmativo(valor)) {
                 r.agregarCaracteristica(grupoSi, etiqueta, null);
             } else if (comoCaracteristicas && Texto.clave(valor).equals("no")) {
