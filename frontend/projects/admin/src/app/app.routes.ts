@@ -45,6 +45,11 @@ export const routes: Routes = [
         loadComponent: () => import('./duplicados/duplicados.page').then((m) => m.DuplicadosPage),
       },
       { path: 'catalogos', loadComponent: () => import('./catalogos/catalogos.page').then((m) => m.CatalogosPage) },
+      {
+        path: 'catalogos/caracteristica/limpieza',
+        canActivate: [rolGuard('ADMIN')],
+        loadComponent: () => import('./catalogos/limpiar-caracteristicas.page').then((m) => m.LimpiarCaracteristicasPage),
+      },
       { path: 'categorias', loadComponent: () => import('./catalogos/categorias.page').then((m) => m.CategoriasPage) },
       { path: 'mapa', loadComponent: () => import('./mapa/mapa.page').then((m) => m.MapaPage) },
       {

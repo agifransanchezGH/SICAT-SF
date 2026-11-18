@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 
 import { Api } from '../core/api';
 import { AuthService } from '../core/auth.service';
@@ -22,7 +23,7 @@ import { CatalogoItem } from '../core/modelos';
   selector: 'app-catalogos-page',
   imports: [
     FormsModule, ReactiveFormsModule, EstadoChip, MatListModule, MatTableModule, MatFormFieldModule, MatInputModule,
-    MatCheckboxModule, MatButtonModule, MatIconModule, MatTooltipModule,
+    MatCheckboxModule, MatButtonModule, MatIconModule, MatTooltipModule, RouterLink,
   ],
   template: `
     <section class="pagina">
@@ -37,6 +38,9 @@ import { CatalogoItem } from '../core/modelos';
         <div class="tarjeta">
           <div class="cabecera">
             <h2>{{ titulo() }}</h2>
+            @if (esAdmin && actual() === 'caracteristica') {
+              <a mat-stroked-button routerLink="/catalogos/caracteristica/limpieza"><mat-icon>cleaning_services</mat-icon> Limpiar duplicados</a>
+            }
             <mat-checkbox [(ngModel)]="incluirInactivos" (change)="cargar()">Ver dados de baja</mat-checkbox>
           </div>
           @if (esAdmin) {
