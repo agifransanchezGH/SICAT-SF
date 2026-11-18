@@ -8,6 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Alojamiento } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 const CAMPOS: { clave: keyof Alojamiento; texto: string }[] = [
   { clave: 'cantHabitaciones', texto: 'Habitaciones' },
@@ -47,6 +48,7 @@ const CAMPOS: { clave: keyof Alojamiento; texto: string }[] = [
   styles: `.botones { display: flex; justify-content: flex-end; }`,
 })
 export class AlojamientoForm implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Alojamiento', () => this.form.dirty && Object.values(this.form.getRawValue()).some((v) => v != null));
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
 

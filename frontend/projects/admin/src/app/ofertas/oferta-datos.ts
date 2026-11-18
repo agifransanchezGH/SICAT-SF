@@ -10,6 +10,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { Oferta, Ref } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Datos de la oferta: categoría principal, adicionales, acceso, público y frecuencia. */
 @Component({
@@ -56,6 +57,7 @@ import { Oferta, Ref } from '../core/modelos';
   styles: `.botones { display: flex; justify-content: flex-end; }`,
 })
 export class OfertaDatos implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Datos de la oferta', () => this.form.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   protected readonly catalogos = inject(Catalogos);

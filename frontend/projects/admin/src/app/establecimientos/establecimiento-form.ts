@@ -12,6 +12,7 @@ import { Avisos } from '../core/avisos';
 import { Establecimiento, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
 import { LugarDialog } from '../lugares/lugar-dialog';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Datos generales de un establecimiento: se usa en el alta y en la pestaña "Datos" de la ficha. */
 @Component({
@@ -91,6 +92,7 @@ import { LugarDialog } from '../lugares/lugar-dialog';
   `,
 })
 export class EstablecimientoForm implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Datos', () => this.form.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly dialog = inject(MatDialog);

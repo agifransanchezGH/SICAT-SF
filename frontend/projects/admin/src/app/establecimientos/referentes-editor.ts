@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Referente } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Personas de contacto internas del establecimiento (no salen al sitio público). */
 @Component({
@@ -43,6 +44,7 @@ import { Referente } from '../core/modelos';
   styleUrl: '../comun/editores.scss',
 })
 export class ReferentesEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Referentes', () => this.filas.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly fb = inject(NonNullableFormBuilder);

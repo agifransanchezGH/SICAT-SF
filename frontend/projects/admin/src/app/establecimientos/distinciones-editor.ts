@@ -11,6 +11,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { DistincionAsignada } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Premios y certificaciones del establecimiento (catálogo "distincion"). */
 @Component({
@@ -50,6 +51,7 @@ import { DistincionAsignada } from '../core/modelos';
   styles: `.nombre { flex: 2 1 260px; } .anio { max-width: 110px; } .url { flex: 2 1 240px; }`,
 })
 export class DistincionesEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Distinciones', () => this.filas.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly fb = inject(NonNullableFormBuilder);

@@ -25,6 +25,76 @@ const conProtocolo = (v: string) => (/^https?:\/\//i.test(v) ? v : `https://${v}
 /** "https://www.facebook.com/club/" → "facebook.com/club" */
 const corta = (v: string) => v.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[/?#]+$/, '');
 
+/** Característica que se asume cuando el número se cargó sin ella (la base es de la ciudad de Santa Fe). */
+const CARACTERISTICA_LOCAL = '342';
+
+const digitos = (v: string) => v.replace(/\D/g, '');
+
+/** Número nacional de 10 dígitos (característica + abonado), y si es celular (venía con el 15). */
+interface NumeroArgentino {
+  nacional: string;
+  celular: boolean;
+}
+
+function nacionalDe(d: string): NumeroArgentino | null {
+  if (d.length === 10) {
+    return { nacional: d, celular: false };
+  }
+  // Con el 15 de celular después de la característica (2 a 4 dígitos): 342 15 5034137.
+  if (d.length === 12) {
+    for (const largo of [3, 4, 2]) {
+      if (d.substring(largo, largo + 2) === '15') {
+        return { nacional: d.substring(0, largo) + d.substring(largo + 2), celular: true };
+      }
+    }
+    return null;
+  }
+  // Sin característica: se asume la de Santa Fe.
+  if (d.length === 7) {
+    return { nacional: CARACTERISTICA_LOCAL + d, celular: false };
+  }
+  if (d.length === 9 && d.startsWith('15')) {
+    return { nacional: CARACTERISTICA_LOCAL + d.substring(2), celular: true };
+  }
+  return null;
+}
+
+/**
+ * Pasa un teléfono como se carga en Argentina a formato internacional, sin el "+": "(0342) 15 503-4137" →
+ * "5493425034137". Toma el primer número del texto (puede traer otro, un interno o una aclaración), quita el 0
+ * de la característica y el 15 del celular. Con `celular` agrega el 9 (WhatsApp siempre lo necesita).
+ * Devuelve null si no se puede saber el número con seguridad.
+ */
+export function telefonoInternacional(valor: string, celular = false): string | null {
+  // Primer tramo con aspecto de número: dígitos con espacios, guiones, puntos o paréntesis en el medio.
+  const tramo = valor.match(/\+?[\d(][\d\s().\-–]*\d/)?.[0];
+  if (!tramo) {
+    return null;
+  }
+  const directo = digitos(tramo);
+  // 0800, 0810, 0600…: números de servicio que solo se marcan dentro del país.
+  if (/^0[6-9]\d0/.test(directo)) {
+    return null;
+  }
+  // Ya internacional: +54 9 342 …, 0054 …, 549…
+  const internacional = directo.replace(/^00/, '');
+  if ((tramo.startsWith('+') || directo.startsWith('00') || directo.startsWith('54')) && /^54\d{10,11}$/.test(internacional)) {
+    const resto = internacional.substring(2).replace(/^9/, '');
+    const n = nacionalDe(resto);
+    return n ? '54' + (celular || n.celular || internacional.startsWith('549') ? '9' : '') + n.nacional : null;
+  }
+  // Varios números separados por guiones ("4602921-4603053"): se suman partes hasta tener uno válido.
+  let acumulado = '';
+  for (const parte of tramo.split(/[-–]/)) {
+    acumulado += digitos(parte);
+    const n = nacionalDe(acumulado.replace(/^0/, ''));
+    if (n) {
+      return '54' + (celular || n.celular ? '9' : '') + n.nacional;
+    }
+  }
+  return null;
+}
+
 type Canal = 'correo' | 'whatsapp' | 'telefono' | 'instagram' | 'facebook' | 'web' | 'otro';
 
 function canal(tipo: string, valor: string): Canal {
@@ -44,10 +114,18 @@ export function enlaceDe(tipo: string, valor: string): EnlaceContacto {
   switch (canal(tipo, v)) {
     case 'correo':
       return { icono: 'mail', texto: v, href: `mailto:${v}` };
-    case 'whatsapp':
-      return { icono: 'chat', texto: v, href: `https://wa.me/${v.replace(/[^\d]/g, '')}` };
-    case 'telefono':
-      return { icono: 'call', texto: v, href: `tel:${sinEspacios(v)}` };
+    case 'whatsapp': {
+      // wa.me necesita el número internacional completo: 54 9 + característica sin 0 + número sin 15.
+      const numero = telefonoInternacional(v, true);
+      return { icono: 'chat', texto: v, href: numero ? `https://wa.me/${numero}` : null };
+    }
+    case 'telefono': {
+      // Con +54 la llamada funciona también desde un celular extranjero.
+      const numero = telefonoInternacional(v);
+      // Si no se reconoce (0800, número incompleto) se marca tal cual, siempre que parezca un teléfono.
+      const crudo = digitos(v.match(/[\d(][\d\s().\-]*\d/)?.[0] ?? '');
+      return { icono: 'call', texto: v, href: numero ? `tel:+${numero}` : crudo.length >= 7 ? `tel:${crudo}` : null };
+    }
     case 'instagram': {
       if (URL_INSTAGRAM.test(v)) {
         const usuario = corta(v).split('/')[1];
@@ -112,6 +190,11 @@ export function problemaDe(tipo: string, valor: string): string | null {
         : 'Es un nombre, no la URL de la página: el sitio solo puede ofrecer una búsqueda en Facebook';
     case 'web':
       return /\s/.test(v) ? 'Una dirección web no lleva espacios: no se va a mostrar enlace' : null;
+    // Solo aviso en el editor (no entra en el filtro "Contactos a revisar", que se arma en SQL).
+    case 'whatsapp':
+      return telefonoInternacional(v, true)
+        ? null
+        : 'No se reconoce el número: cargalo con característica, p. ej. 342 15 5123456. Sin eso no hay enlace';
     default:
       return null;
   }

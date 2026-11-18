@@ -19,6 +19,7 @@ import { DistincionesEditor } from './distinciones-editor';
 import { EstablecimientoForm } from './establecimiento-form';
 import { OfertasLista } from './ofertas-lista';
 import { PublicacionPanel } from './publicacion-panel';
+import { CambiosPendientes } from '../core/cambios-pendientes';
 import { ReferentesEditor } from './referentes-editor';
 
 const PESTANIAS = ['datos', 'publicacion', 'ofertas', 'contactos', 'caracteristicas', 'referentes', 'distinciones', 'historial'];
@@ -61,38 +62,43 @@ const PESTANIAS = ['datos', 'publicacion', 'ofertas', 'contactos', 'caracteristi
         </p>
 
         <div class="tarjeta">
-          <mat-tab-group [selectedIndex]="indice()" (selectedIndexChange)="cambiarPestania($event)" mat-stretch-tabs="false" animationDuration="0ms">
-            <mat-tab label="Datos">
+          <!-- preserveContent: al cambiar de pestaña no se pierde lo que se estaba escribiendo -->
+          <mat-tab-group [selectedIndex]="indice()" (selectedIndexChange)="cambiarPestania($event)" mat-stretch-tabs="false"
+                         animationDuration="0ms" preserveContent>
+            <mat-tab [label]="marca('Datos')">
               <ng-template matTabContent>
                 <app-establecimiento-form [establecimiento]="est" [editable]="puedeEditar" (guardado)="actualizar($event)" />
               </ng-template>
             </mat-tab>
             <mat-tab label="Publicación">
               <ng-template matTabContent>
-                <app-publicacion-panel #publicacion [establecimientoId]="est.id" [editable]="puedeEditar" (cambio)="actualizar($event)" />
+                <!-- Se vuelve a crear cada vez que se abre, para mostrar lo que falta con los datos recién guardados -->
+                @if (indice() === 1) {
+                  <app-publicacion-panel #publicacion [establecimientoId]="est.id" [editable]="puedeEditar" (cambio)="actualizar($event)" />
+                }
               </ng-template>
             </mat-tab>
             <mat-tab label="Ofertas">
               <ng-template matTabContent>
-                <app-ofertas-lista [establecimientoId]="est.id" [editable]="puedeEditar" />
+                @if (indice() === 2) { <app-ofertas-lista [establecimientoId]="est.id" [editable]="puedeEditar" /> }
               </ng-template>
             </mat-tab>
-            <mat-tab label="Contactos">
+            <mat-tab [label]="marca('Contactos')">
               <ng-template matTabContent>
                 <app-contactos-editor [ruta]="'/establecimientos/' + est.id + '/contactos'" [editable]="puedeEditar" />
               </ng-template>
             </mat-tab>
-            <mat-tab label="Características">
+            <mat-tab [label]="marca('Características')">
               <ng-template matTabContent>
                 <app-caracteristicas-editor [ruta]="'/establecimientos/' + est.id + '/caracteristicas'" [editable]="puedeEditar" />
               </ng-template>
             </mat-tab>
-            <mat-tab label="Referentes">
+            <mat-tab [label]="marca('Referentes')">
               <ng-template matTabContent>
                 <app-referentes-editor [establecimientoId]="est.id" [editable]="puedeEditar" />
               </ng-template>
             </mat-tab>
-            <mat-tab label="Distinciones">
+            <mat-tab [label]="marca('Distinciones')">
               <ng-template matTabContent>
                 <app-distinciones-editor [establecimientoId]="est.id" [editable]="puedeEditar" />
               </ng-template>
@@ -100,7 +106,7 @@ const PESTANIAS = ['datos', 'publicacion', 'ofertas', 'contactos', 'caracteristi
             @if (puedeEditar) {
               <mat-tab label="Historial">
                 <ng-template matTabContent>
-                  <app-historial tabla="establecimiento" [clave]="est.id" />
+                  @if (indice() === 7) { <app-historial tabla="establecimiento" [clave]="est.id" /> }
                 </ng-template>
               </mat-tab>
             }
@@ -132,6 +138,12 @@ export class EstablecimientoPage {
   protected readonly indice = signal(Math.max(0, PESTANIAS.indexOf(this.route.snapshot.queryParamMap.get('pestania') ?? 'datos')));
 
   private readonly publicacion = viewChild<PublicacionPanel>('publicacion');
+
+  private readonly cambios = inject(CambiosPendientes);
+  /** "Contactos •" si esa pestaña tiene cambios sin guardar. */
+  protected marca(texto: string, etiqueta = texto): string {
+    return this.cambios.pendientes().includes(etiqueta) ? `${texto} •` : texto;
+  }
 
   constructor() {
     effect(() => this.cargar(this.id()));

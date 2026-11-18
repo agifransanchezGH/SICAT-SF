@@ -12,6 +12,7 @@ import { Avisos } from '../core/avisos';
 import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
 import { Salon } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Salones para eventos de la oferta, con capacidades por formato y sus características. */
 @Component({
@@ -73,6 +74,7 @@ import { Salon } from '../core/modelos';
   `,
 })
 export class SalonesEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Salones', () => [...this.forms.values()].some((f) => f.dirty));
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly confirmar = inject(Confirmar);
