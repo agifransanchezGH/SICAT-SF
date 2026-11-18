@@ -12,6 +12,7 @@ import { Historial } from '../comun/historial';
 import { Api } from '../core/api';
 import { AuthService } from '../core/auth.service';
 import { Avisos } from '../core/avisos';
+import { CambiosPendientes } from '../core/cambios-pendientes';
 import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
 import { Oferente } from '../core/modelos';
@@ -39,7 +40,7 @@ import { OferenteDialog } from './oferente-dialog';
         </div>
         <p class="suave sub">{{ o.tipoOferente }}</p>
         <div class="tarjeta">
-          <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms">
+          <mat-tab-group #pestanias mat-stretch-tabs="false" animationDuration="0ms" preserveContent>
             <mat-tab [label]="'Establecimientos (' + (o.establecimientos?.length ?? 0) + ')'">
               <mat-nav-list>
                 @for (e of o.establecimientos; track e.id) {
@@ -52,14 +53,14 @@ import { OferenteDialog } from './oferente-dialog';
                 }
               </mat-nav-list>
             </mat-tab>
-            <mat-tab label="Contactos">
+            <mat-tab [label]="marca('Contactos')">
               <ng-template matTabContent>
                 <app-contactos-editor [ruta]="'/oferentes/' + o.id + '/contactos'" [editable]="puedeEditar" />
               </ng-template>
             </mat-tab>
             @if (puedeEditar) {
               <mat-tab label="Historial">
-                <ng-template matTabContent><app-historial tabla="oferente" [clave]="o.id" /></ng-template>
+                <ng-template matTabContent>@if (pestanias.selectedIndex === 2) { <app-historial tabla="oferente" [clave]="o.id" /> }</ng-template>
               </mat-tab>
             }
           </mat-tab-group>
@@ -80,6 +81,12 @@ export class OferentePage {
   private readonly auth = inject(AuthService);
 
   readonly id = input.required({ transform: numberAttribute });
+
+  private readonly cambios = inject(CambiosPendientes);
+  /** "Contactos •" si esa pestaña tiene cambios sin guardar. */
+  protected marca(texto: string, etiqueta = texto): string {
+    return this.cambios.pendientes().includes(etiqueta) ? `${texto} •` : texto;
+  }
   protected readonly puedeEditar = this.auth.tieneRol('ADMIN', 'CARGADOR');
   protected readonly esAdmin = this.auth.tieneRol('ADMIN');
   protected readonly oferente = signal<Oferente | null>(null);

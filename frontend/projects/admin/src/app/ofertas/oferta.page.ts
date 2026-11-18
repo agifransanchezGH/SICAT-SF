@@ -11,6 +11,7 @@ import { Historial } from '../comun/historial';
 import { Api } from '../core/api';
 import { AuthService } from '../core/auth.service';
 import { Avisos } from '../core/avisos';
+import { CambiosPendientes } from '../core/cambios-pendientes';
 import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
 import { Oferta } from '../core/modelos';
@@ -71,19 +72,19 @@ const NOMBRES: Record<Especializacion, string> = {
         </p>
 
         <div class="tarjeta">
-          <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms" [(selectedIndex)]="indice">
-            <mat-tab label="Datos">
+          <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms" [(selectedIndex)]="indice" preserveContent>
+            <mat-tab [label]="marca('Datos', 'Datos de la oferta')">
               <ng-template matTabContent>
                 <app-oferta-datos [oferta]="o" [editable]="puedeEditar" (guardado)="oferta.set($event)" />
               </ng-template>
             </mat-tab>
-            <mat-tab label="Horarios">
+            <mat-tab [label]="marca('Horarios')">
               <ng-template matTabContent>
                 <app-horarios-editor [ruta]="'/ofertas/' + o.id + '/horarios'" [editable]="puedeEditar" />
               </ng-template>
             </mat-tab>
             @for (e of activas(); track e) {
-              <mat-tab [label]="nombres[e]">
+              <mat-tab [label]="marca(nombres[e])">
                 <ng-template matTabContent>
                   @switch (e) {
                     @case ('alojamiento') { <app-alojamiento-form [ofertaId]="o.id" [alojamiento]="o.alojamiento" [editable]="puedeEditar" /> }
@@ -96,7 +97,7 @@ const NOMBRES: Record<Especializacion, string> = {
             }
             @if (puedeEditar) {
               <mat-tab label="Historial">
-                <ng-template matTabContent><app-historial tabla="oferta" [clave]="o.id" /></ng-template>
+                <ng-template matTabContent>@if (indice === 2 + activas().length) { <app-historial tabla="oferta" [clave]="o.id" /> }</ng-template>
               </mat-tab>
             }
           </mat-tab-group>
@@ -126,6 +127,12 @@ export class OfertaPage {
   protected readonly activas = signal<Especializacion[]>([]);
   protected readonly disponibles = signal<Especializacion[]>([]);
   protected indice = 0;
+
+  private readonly cambios = inject(CambiosPendientes);
+  /** "Contactos •" si esa pestaña tiene cambios sin guardar. */
+  protected marca(texto: string, etiqueta = texto): string {
+    return this.cambios.pendientes().includes(etiqueta) ? `${texto} •` : texto;
+  }
 
   constructor() {
     effect(() => this.cargar(this.id()));

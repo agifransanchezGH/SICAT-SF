@@ -12,6 +12,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Confirmar } from '../core/confirmar';
 import { VisitaGuiada } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Visitas guiadas de la oferta (modalidad, reserva) con sus propios horarios. */
 @Component({
@@ -63,6 +64,7 @@ import { VisitaGuiada } from '../core/modelos';
   `,
 })
 export class VisitasEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Visitas guiadas', () => [...this.forms.values()].some((f) => f.dirty));
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly confirmar = inject(Confirmar);

@@ -11,6 +11,7 @@ import { Circuito, Parada } from '../core/modelos';
 import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
 import * as L from 'leaflet';
 import { SicatMapa } from 'shared';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
 
@@ -84,6 +85,7 @@ const round = (n: number) => Math.round(n * 1e6) / 1e6;
   `,
 })
 export class CircuitoForm implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Circuito', () => this.form.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly zona = inject(NgZone);

@@ -10,6 +10,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { CaracteristicaAsignada, CatalogoItem } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 interface Seleccion {
   marcada: boolean;
@@ -66,6 +67,7 @@ interface Seleccion {
   `,
 })
 export class CaracteristicasEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Características', () => this.cambios());
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
 

@@ -9,6 +9,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { DIAS, Horario } from '../core/modelos';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 const desdeAntesDeHasta = (g: AbstractControl): ValidationErrors | null => {
   const { desde, hasta } = g.value as { desde: string; hasta: string };
@@ -62,6 +63,7 @@ const desdeAntesDeHasta = (g: AbstractControl): ValidationErrors | null => {
   styles: `.error { color: var(--sicat-error); font-size: 13px; }`,
 })
 export class HorariosEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Horarios', () => this.filas.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly fb = inject(NonNullableFormBuilder);

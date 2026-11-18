@@ -13,6 +13,7 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { CanalContacto } from '../core/modelos';
 import { ayudaDe, enlaceDe, problemaDe } from 'shared';
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Canales de contacto de un establecimiento o de un oferente. Se guarda la lista completa (PUT). */
 @Component({
@@ -76,6 +77,7 @@ import { ayudaDe, enlaceDe, problemaDe } from 'shared';
   styles: `.tipo { width: 170px; } .valor { flex: 2 1 220px; } .uso { flex: 1 1 160px; } .aviso { color: #b26a00; }`,
 })
 export class ContactosEditor implements OnInit {
+  private readonly avisoDeCambios = avisarSiHayCambios('Contactos', () => this.filas.dirty);
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly fb = inject(NonNullableFormBuilder);
