@@ -19,7 +19,7 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { EstadoChip } from '../core/estado';
 import { FiltrosRecordados } from '../core/filtros-recordados';
-import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/modelos';
+import { ESTADOS_PUBLICACION, Establecimiento, EstablecimientoResumen, Pagina } from '../core/modelos';
 
 @Component({
   selector: 'app-establecimientos-page',
@@ -116,6 +116,24 @@ import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/mod
               @if (!e.activo) { <app-estado valor="inactivo" /> }
             </td>
           </ng-container>
+          <ng-container matColumnDef="publicar">
+            <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Publicación rápida</span></th>
+            <td mat-cell *matCellDef="let e" class="celda-publicar">
+              @if (e.activo && e.estadoGeo === 'VERIFICADO') {
+                @if (e.estadoPublicacion === 'PUBLICADO') {
+                  <button mat-stroked-button type="button" class="boton-publicar" [disabled]="enviando().has(e.id)"
+                          [attr.aria-label]="'Despublicar ' + e.nombre" (click)="alternar($event, e)">
+                    <mat-icon>visibility_off</mat-icon> Despublicar
+                  </button>
+                } @else {
+                  <button mat-flat-button type="button" class="boton-publicar" [disabled]="enviando().has(e.id)"
+                          [attr.aria-label]="'Publicar ' + e.nombre" (click)="alternar($event, e)">
+                    <mat-icon>public</mat-icon> Publicar
+                  </button>
+                }
+              }
+            </td>
+          </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
           <tr mat-row *matRowDef="let e; columns: columnas" class="fila-link" [routerLink]="['/establecimientos', e.id]"></tr>
         </table>
@@ -134,6 +152,10 @@ import { ESTADOS_PUBLICACION, EstablecimientoResumen, Pagina } from '../core/mod
   styles: `
     .destacado { color: #c79100; vertical-align: -2px; margin-left: 4px; }
     td app-estado + app-estado { margin-left: 4px; }
+    .celda-publicar { white-space: nowrap; width: 1%; }
+    /* mismo ancho y alto para los dos estados: la columna queda alineada al alternar */
+    .boton-publicar { width: 9.5rem; height: 36px; padding-inline: 12px; font-size: 13px; }
+    .boton-publicar mat-icon { font-size: 18px; width: 18px; height: 18px; }
   `,
 })
 export class EstablecimientosPage {
@@ -152,10 +174,13 @@ export class EstablecimientosPage {
     { valor: 'APROXIMADO', texto: 'Aproximada' },
     { valor: 'SIN_UBICACION', texto: 'Sin ubicación' },
   ];
-  protected readonly columnas = ['nombre', 'categorias', 'localidad', 'ubicacion', 'estado'];
+  protected readonly columnas = ['nombre', 'categorias', 'localidad', 'ubicacion', 'estado',
+    ...(this.puedeEditar ? ['publicar'] : [])];
   protected readonly localidades = toSignal(this.catalogos.de('localidad'), { initialValue: [] });
   protected readonly pagina = signal<Pagina<EstablecimientoResumen> | null>(null);
   protected readonly cargando = signal(false);
+  /** Ids con un publicar/despublicar en curso (deshabilita su botón). */
+  protected readonly enviando = signal<ReadonlySet<number>>(new Set());
 
   private readonly recordados = inject(FiltrosRecordados);
   /**
@@ -229,6 +254,29 @@ export class EstablecimientosPage {
         takeUntilDestroyed(destroy),
       )
       .subscribe((r) => this.pagina.set(r));
+  }
+
+  /**
+   * Publicar / despublicar desde el listado. Solo se ofrece con la ubicación verificada; si falta otro
+   * requisito (p. ej. una oferta activa) la API responde 422 y el aviso dice qué falta.
+   */
+  protected alternar(evento: Event, e: EstablecimientoResumen): void {
+    evento.stopPropagation(); // la fila entera es un enlace al detalle
+    const publicar = e.estadoPublicacion !== 'PUBLICADO';
+    this.enviando.update((s) => new Set(s).add(e.id));
+    this.api
+      .post<Establecimiento>(`/establecimientos/${e.id}/${publicar ? 'publicar' : 'despublicar'}`)
+      .pipe(finalize(() => this.enviando.update((s) => { const n = new Set(s); n.delete(e.id); return n; })))
+      .subscribe({
+        next: (r) => {
+          this.pagina.update((p) => p && {
+            ...p,
+            contenido: p.contenido.map((x) => (x.id === e.id ? { ...x, estadoPublicacion: r.estadoPublicacion } : x)),
+          });
+          this.avisos.ok(`${e.nombre}: ${publicar ? 'publicado' : 'despublicado'}`);
+        },
+        error: (err) => this.avisos.error(err, `No se pudo ${publicar ? 'publicar' : 'despublicar'} ${e.nombre}`),
+      });
   }
 
   protected paginar(e: PageEvent): void {
