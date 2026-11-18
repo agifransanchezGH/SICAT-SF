@@ -40,7 +40,7 @@ const ANCHO_PANEL = 900;
 @Component({
   selector: 'app-caracteristicas-editor',
   // La altura de la cabecera fija se usa para ubicar el panel de grupos y para que el foco no quede tapado.
-  host: { '[style.--alto-cabecera.px]': 'altoCabecera()' },
+  host: { '[style.--alto-cabecera.px]': 'altoCabecera()', '(focusin)': 'noTaparFoco($event)' },
   imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MatSlideToggleModule],
   template: `
     @if (cargando()) {
@@ -241,7 +241,9 @@ export class CaracteristicasEditor implements OnInit {
   protected readonly errorAlCargar = signal(false);
   protected readonly opciones = signal<Opcion[]>([]);
   protected readonly sel = signal<Record<number, Seleccion>>({});
-  protected readonly cambios = signal(false);
+  /** Lo guardado, para saber si hay cambios de verdad (tildar y destildar no cuenta). */
+  private readonly guardado = signal('');
+  protected readonly cambios = computed(() => this.firma(this.sel()) !== this.guardado());
   protected readonly guardando = signal(false);
   protected readonly busqueda = signal('');
   protected readonly soloSeleccionadas = signal(false);
@@ -327,6 +329,21 @@ export class CaracteristicasEditor implements OnInit {
     this.cargar();
   }
 
+  /**
+   * WCAG 2.4.11: si el foco cae en algo que queda debajo de la cabecera fija, se lo trae a la vista. El navegador
+   * no lo hace solo porque considera visible lo que está tapado por un elemento sticky.
+   */
+  protected noTaparFoco(e: FocusEvent): void {
+    const objetivo = e.target as HTMLElement | null;
+    const cabecera = this.cabecera()?.nativeElement;
+    if (!objetivo || !cabecera || cabecera.contains(objetivo)) {
+      return;
+    }
+    if (objetivo.getBoundingClientRect().top < cabecera.getBoundingClientRect().bottom + 4) {
+      objetivo.scrollIntoView({ block: 'center' });
+    }
+  }
+
   protected cargar(): void {
     this.cargando.set(true);
     this.errorAlCargar.set(false);
@@ -352,8 +369,18 @@ export class CaracteristicasEditor implements OnInit {
   }
 
   private aplicar(l: CaracteristicaAsignada[]): void {
-    this.sel.set(Object.fromEntries(l.map((c) => [c.caracteristicaId, { marcada: true, cantidad: c.cantidad }])));
-    this.cambios.set(false);
+    const sel = Object.fromEntries(l.map((c) => [c.caracteristicaId, { marcada: true, cantidad: c.cantidad }]));
+    this.sel.set(sel);
+    this.guardado.set(this.firma(sel));
+  }
+
+  /** Ids marcados con su cantidad, en orden: dos selecciones iguales dan la misma firma. */
+  private firma(sel: Record<number, Seleccion>): string {
+    return Object.entries(sel)
+      .filter(([, s]) => s.marcada)
+      .map(([id, s]) => `${id}:${s.cantidad ?? ''}`)
+      .sort()
+      .join(',');
   }
 
   protected marcada(id: number): boolean {
@@ -381,12 +408,10 @@ export class CaracteristicasEditor implements OnInit {
       return;
     }
     this.sel.update((s) => ({ ...s, [c.id]: { marcada, cantidad: s[c.id]?.cantidad ?? null } }));
-    this.cambios.set(true);
   }
 
   protected cantidad(c: CatalogoItem, v: string): void {
     this.sel.update((s) => ({ ...s, [c.id]: { marcada: true, cantidad: v === '' ? null : Number(v) } }));
-    this.cambios.set(true);
   }
 
   protected guardar(): void {
