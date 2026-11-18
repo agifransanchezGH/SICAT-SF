@@ -1,0 +1,103 @@
+// Identidad visual de SICAT SF, compartida por el sitio público y el panel (ADR 0016).
+// "Una ciudad entre ríos": el agua de la Setúbal, el limo del Paraná y el blanco de cal; Archivo como única
+// familia, con el ancho como recurso (titulares anchos como la cartelería del puerto y los molinos).
+@use '@angular/material' as mat;
+@use 'theme-colors' as colores;
+
+/// Tema de Angular Material + tokens --sicat-*. Densidad 0 en el sitio, -1 en el panel.
+@mixin tema($densidad: 0) {
+  color-scheme: light;
+  @include mat.theme((
+    color: (
+      primary: colores.$primary-palette,
+      tertiary: colores.$tertiary-palette,
+      theme-type: light,
+    ),
+    typography: (
+      plain-family: 'Archivo, system-ui, sans-serif',
+      brand-family: 'Archivo, system-ui, sans-serif',
+      bold-weight: 700,
+      medium-weight: 600,
+      regular-weight: 400,
+    ),
+    density: $densidad,
+  ));
+  // El tono exacto del río para lo principal (la paleta generada lo aclara un poco).
+  @include mat.theme-overrides((
+    primary: #1d5c63,
+    on-primary: #ffffff,
+    background: #f4f6f5,
+    surface: #ffffff,
+    on-surface: #16262a,
+    on-background: #16262a,
+    error: #b3261e,
+  ));
+
+  // Paleta base
+  --sicat-cal: #f4f6f5;
+  --sicat-tinta: #16262a;
+  --sicat-rio: #1d5c63;
+  --sicat-rio-claro: #d7e7e8;
+  --sicat-limo: #b5832a;
+  --sicat-limo-texto: #85600f;
+  --sicat-camalote: #3f6a2e;
+  --sicat-ceibo: #b3261e;
+
+  // Roles (los usan las pantallas; nombres anteriores se mantienen)
+  --sicat-fondo: var(--sicat-cal);
+  --sicat-borde: #d3dcda;
+  --sicat-texto-suave: #52646a;
+  --sicat-acento: var(--sicat-limo-texto);
+  --sicat-ok: var(--sicat-camalote);
+  --sicat-alerta: #8a5a00;
+  --sicat-error: var(--sicat-ceibo);
+
+  // Tipografía: anchos de Archivo (eje wdth)
+  --sicat-ancho-titular: 125%;
+  --sicat-ancho-nombre: 112%;
+  --sicat-ancho-denso: 87.5%;
+
+  // Movimiento
+  --sicat-curva: cubic-bezier(0.2, 0, 0, 1);
+  --sicat-duracion: 220ms;
+}
+
+/// Base común: cuerpo, enlaces, foco visible y movimiento reducido.
+@mixin base {
+  body {
+    margin: 0;
+    font-family: Archivo, system-ui, sans-serif;
+    font-optical-sizing: auto;
+    background: var(--sicat-fondo);
+    color: var(--sicat-tinta);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: var(--sicat-rio);
+    text-underline-offset: 0.18em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--sicat-rio);
+    outline-offset: 2px;
+  }
+
+  .suave {
+    color: var(--sicat-texto-suave);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after,
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

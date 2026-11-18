@@ -31,7 +31,7 @@ function aplanar(nodos: CategoriaPublica[], nivel = 0): OpcionCategoria[] {
       <mat-form-field class="busqueda">
         <mat-label>Buscar</mat-label>
         <mat-icon matPrefix>search</mat-icon>
-        <input matInput formControlName="q" placeholder="Ej.: parrilla, museo, hotel" />
+        <input matInput formControlName="q" type="search" enterkeyhint="search" placeholder="Un museo, una parrilla, un hotel…" />
         @if (filtros.controls.q.value) {
           <button matSuffix mat-icon-button type="button" aria-label="Borrar búsqueda" (click)="filtros.controls.q.setValue('')"><mat-icon>close</mat-icon></button>
         }
@@ -81,7 +81,16 @@ export class FiltrosBusqueda {
   });
 
   constructor() {
-    this.filtros.valueChanges.pipe(debounceTime(350), takeUntilDestroyed(inject(DestroyRef))).subscribe((f) =>
+    const destroy = inject(DestroyRef);
+    // Si la URL cambia desde afuera (p. ej. un atajo de categoría de la portada), el formulario la sigue.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(destroy)).subscribe((p) => {
+      const desdeUrl = { q: p.get('q') ?? '', categoria: p.get('categoria') ?? '', localidad: p.get('localidad') ?? '' };
+      const actual = this.filtros.getRawValue();
+      if (desdeUrl.categoria !== actual.categoria || desdeUrl.localidad !== actual.localidad) {
+        this.filtros.patchValue(desdeUrl, { emitEvent: false });
+      }
+    });
+    this.filtros.valueChanges.pipe(debounceTime(350), takeUntilDestroyed(destroy)).subscribe((f) =>
       this.router.navigate([], {
         queryParams: { q: f.q || null, categoria: f.categoria || null, localidad: f.localidad || null, pagina: null },
         queryParamsHandling: 'merge',

@@ -1,33 +1,11 @@
-/* Tema del panel: Angular Material (M3) con paleta neutra. Para la identidad oficial de la
-   Municipalidad alcanza con cambiar las paletas y las variables --sicat-*. */
-@use '@angular/material' as mat;
+/* Tema del panel: la identidad compartida (shared/src/estilos, ADR 0016) con densidad de herramienta. */
+@use '../../shared/src/estilos/sicat';
 
 html {
-  color-scheme: light;
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-      theme-type: light,
-    ),
-    typography: Roboto,
-    density: -1,
-  ));
-
-  --sicat-fondo: #f6f7f9;
-  --sicat-borde: #dde1e6;
-  --sicat-texto-suave: #5a626e;
-  --sicat-ok: #1b7f3b;
-  --sicat-alerta: #a15c00;
-  --sicat-error: #b42318;
+  @include sicat.tema(-1);
 }
 
-body {
-  margin: 0;
-  font-family: Roboto, system-ui, sans-serif;
-  background: var(--sicat-fondo);
-  color: var(--mat-sys-on-surface);
-}
+@include sicat.base;
 
 /* Utilidades comunes de las pantallas del panel */
 .pagina {
@@ -46,7 +24,9 @@ body {
 
   h1 {
     margin: 0;
-    font: var(--mat-sys-headline-small);
+    font: 700 26px/1.15 Archivo, system-ui, sans-serif;
+    font-stretch: var(--sicat-ancho-nombre);
+    letter-spacing: -0.01em;
     margin-right: auto;
   }
 }
@@ -69,12 +49,17 @@ body {
 .tarjeta {
   background: var(--mat-sys-surface);
   border: 1px solid var(--sicat-borde);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .tabla {
   width: 100%;
+
+  /* Archivo angosta: entran más datos por fila sin achicar la letra */
+  td.mat-mdc-cell {
+    font-stretch: var(--sicat-ancho-denso);
+  }
 
   tr.fila-link {
     cursor: pointer;
@@ -121,14 +106,15 @@ body {
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  background: #eceff3;
-  color: #3d4652;
+  background: #e8eeed;
+  color: #3a4b50;
 
-  &.PUBLICADO, &.VERIFICADO, &.AUTOMATICO_OK { background: #e3f4e8; color: var(--sicat-ok); }
-  &.BORRADOR { background: #eceff3; color: #3d4652; }
-  &.OCULTO, &.inactivo { background: #fdecea; color: var(--sicat-error); }
-  &.AUTOMATICO, &.PENDIENTE { background: #fff4e0; color: var(--sicat-alerta); }
-  &.APROXIMADO, &.NO_ENCONTRADO { background: #fdecea; color: var(--sicat-error); }
+  /* Camalote = listo; limo = a revisar; ceibo = fuera del sitio o sin ubicación */
+  &.PUBLICADO, &.VERIFICADO, &.AUTOMATICO_OK { background: #e4eedf; color: var(--sicat-ok); }
+  &.BORRADOR { background: #e8eeed; color: #3a4b50; }
+  &.OCULTO, &.inactivo { background: #f8e6e4; color: var(--sicat-error); }
+  &.AUTOMATICO, &.PENDIENTE { background: #f6ecd8; color: var(--sicat-alerta); }
+  &.APROXIMADO, &.NO_ENCONTRADO { background: #f8e6e4; color: var(--sicat-error); }
 }
 
 @media (max-width: 720px) {

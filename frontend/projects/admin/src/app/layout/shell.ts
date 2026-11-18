@@ -30,10 +30,10 @@ interface ItemMenu {
         <button mat-icon-button aria-label="Menú" (click)="nav.toggle()"><mat-icon>menu</mat-icon></button>
       }
       <span class="marca">SICAT SF</span>
-      <span class="sub">Administración</span>
+      <span class="sub">Panel de turismo</span>
       <span class="espacio"></span>
       @if (auth.usuario(); as u) {
-        <span class="usuario">{{ u.nombreCompleto }} · {{ u.rol }}</span>
+        <span class="usuario">{{ u.nombreCompleto }} <span class="rol">{{ rolLegible(u.rol) }}</span></span>
         <button mat-icon-button aria-label="Cerrar sesión" title="Cerrar sesión" (click)="auth.cerrarSesion()">
           <mat-icon>logout</mat-icon>
         </button>
@@ -41,11 +41,11 @@ interface ItemMenu {
     </mat-toolbar>
     <mat-sidenav-container class="contenedor">
       <mat-sidenav #nav [mode]="movil() ? 'over' : 'side'" [opened]="!movil()" class="lateral">
-        <mat-nav-list>
+        <mat-nav-list aria-label="Secciones del panel">
           @for (item of menu(); track item.ruta) {
             <a mat-list-item [routerLink]="item.ruta" routerLinkActive #rla="routerLinkActive" [activated]="rla.isActive"
                (click)="movil() && nav.close()">
-              <mat-icon matListItemIcon>{{ item.icono }}</mat-icon>
+              <mat-icon matListItemIcon aria-hidden="true">{{ item.icono }}</mat-icon>
               <span matListItemTitle>{{ item.texto }}</span>
             </a>
           }
@@ -58,18 +58,36 @@ interface ItemMenu {
   `,
   styles: `
     :host { display: flex; flex-direction: column; height: 100vh; }
-    .barra { gap: 8px; background: var(--mat-sys-surface); border-bottom: 1px solid var(--sicat-borde); }
-    .marca { font-weight: 700; }
-    .sub { color: var(--sicat-texto-suave); font-weight: 400; }
+    .barra { gap: 10px; background: var(--mat-sys-surface); border-bottom: 1px solid var(--sicat-borde); }
+    .marca { font-weight: 800; font-stretch: var(--sicat-ancho-titular); letter-spacing: -0.01em; font-size: 18px; color: var(--sicat-tinta); }
+    .sub { color: var(--sicat-texto-suave); font-weight: 400; font-size: 15px; }
     .espacio { flex: 1; }
-    .usuario { font: var(--mat-sys-body-medium); color: var(--sicat-texto-suave); }
+    .usuario { font-size: 14px; color: var(--sicat-tinta); }
+    .rol { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--sicat-rio-claro); color: var(--sicat-rio); font-size: 12px; font-weight: 600; }
     .contenedor { flex: 1; background: var(--sicat-fondo); }
-    .lateral { width: 232px; border-right: 1px solid var(--sicat-borde); background: var(--mat-sys-surface); }
+    /* Menú en tinta de río: separa la herramienta del contenido sin competir con él */
+    .lateral {
+      width: 252px; border-right: 0; border-radius: 0; background: var(--sicat-tinta);
+      --mat-list-list-item-label-text-color: #c9d6d8;
+      --mat-list-list-item-hover-label-text-color: #ffffff;
+      --mat-list-list-item-focus-label-text-color: #ffffff;
+      --mat-list-list-item-leading-icon-color: #8fa6aa;
+      --mat-list-list-item-hover-leading-icon-color: #ffffff;
+      --mat-list-list-item-hover-state-layer-color: #ffffff;
+      --mat-list-list-item-focus-state-layer-color: #ffffff;
+      --mat-list-active-indicator-color: rgb(255 255 255 / 12%);
+      --mat-list-active-indicator-shape: 6px;
+    }
+    .lateral mat-nav-list { padding: 12px 8px; }
+    .lateral a.mdc-list-item--activated { --mat-list-list-item-label-text-color: #ffffff; --mat-list-list-item-leading-icon-color: #ffffff; box-shadow: inset 3px 0 var(--sicat-limo); }
+    .lateral a:focus-visible { outline-color: #ffffff; outline-offset: -2px; }
     @media (max-width: 720px) { .usuario, .sub { display: none; } }
   `,
 })
 export class Shell {
   protected readonly auth = inject(AuthService);
+  protected readonly rolLegible = (rol: string) =>
+    ({ ADMIN: 'Administración', CARGADOR: 'Carga', CONSULTA: 'Consulta' } as Record<string, string>)[rol] ?? rol;
 
   protected readonly movil = toSignal(
     inject(BreakpointObserver).observe('(max-width: 900px)').pipe(map((r) => r.matches)),

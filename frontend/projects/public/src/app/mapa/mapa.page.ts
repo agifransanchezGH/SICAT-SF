@@ -7,7 +7,7 @@ import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { EMPTY, catchError, combineLatest, filter, switchMap } from 'rxjs';
-import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, popupDeGrupo } from 'shared';
+import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, nombreLegible, popupDeGrupo } from 'shared';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiPublicaService } from '../core/api-publica.service';
@@ -58,7 +58,7 @@ export class MapaPage {
   private primeraVez = true;
 
   constructor() {
-    inject(Title).setTitle('Mapa · Santa Fe');
+    inject(Title).setTitle('Mapa de lugares, Santa Fe');
     combineLatest([toObservable(this.mapa).pipe(filter((m): m is L.Map => m !== null)), this.route.queryParamMap])
       .pipe(
         switchMap(([, p]) =>
@@ -84,7 +84,7 @@ export class MapaPage {
     this.mapa.set(m);
     this.api.circuitos().pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroy)).subscribe((geo) => {
       L.geoJSON(geo, {
-        style: { color: '#7b1fa2', weight: 4, opacity: 0.8 },
+        style: { color: '#3f6a2e', weight: 4, opacity: 0.85 },
         onEachFeature: (f, capa) => {
           const p = f.properties ?? {};
           const paradas = (p['paradas'] ?? []) as { nombre: string }[];
@@ -117,15 +117,15 @@ export class MapaPage {
     const bloque = (p: Record<string, unknown>) => {
       const cats = ((p['categorias'] ?? []) as string[]).join(' · ');
       return (
-        `<strong>${escapar(p['nombre'])}</strong>` +
-        (cats ? `<div style="color:#5a626e;margin-top:2px">${escapar(cats)}</div>` : '') +
+        `<strong>${escapar(nombreLegible(p['nombre'] as string))}</strong>` +
+        (cats ? `<div style="color:#52646a;margin-top:2px">${escapar(cats)}</div>` : '') +
         `<div style="margin-top:6px"><a href="/establecimientos/${escapar(p['id'])}" data-id="${escapar(p['id'])}">Ver ficha</a></div>`
       );
     };
     // Varios establecimientos en el mismo punto: un solo marcador con la cantidad y un popup con todos.
     for (const g of agruparPorPunto(geo)) {
       const destacado = g.items.some((p) => p['destacado']);
-      const color = destacado ? '#c79100' : '#1565c0';
+      const color = destacado ? '#b5832a' : '#1d5c63';
       const capa =
         g.items.length === 1
           ? L.circleMarker(g.latlng, { radius: destacado ? 9 : 7, color: '#fff', weight: 2, fillColor: color, fillOpacity: 0.95 })

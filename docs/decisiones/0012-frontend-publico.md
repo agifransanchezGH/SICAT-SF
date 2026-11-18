@@ -7,7 +7,7 @@
 Segunda parte del paso 9: el sitio público (listado y ficha) sobre la API Pública (ADR 0009). Hacía falta definir la base visual y cómo probarlo, porque la base local no tenía nada publicado.
 
 ## Decisión
-- **Misma base que el panel**: Angular Material (M3) con paleta neutra y variables `--sicat-*` en `projects/public/src/styles.scss`. La identidad visual oficial se aplica cambiando paletas y variables.
+- **Misma base que el panel**: Angular Material (M3) con la identidad compartida de `projects/shared/src/estilos/` (ver ADR 0016).
 - **Listado** (`/`): buscador por texto (nombre y categorías, sin acentos, como la API), filtro por categoría (árbol aplanado) y por localidad (solo si hay más de una con publicados). Los filtros viven en la URL (`?q=…&categoria=…&localidad=…&pagina=…`), así se pueden compartir y "Volver" desde la ficha los conserva. Tarjetas con nombre, categorías, dirección y destacado; 24 por página.
 - **Ficha** (`/establecimientos/:id`): nombre y categorías, aviso si no está abierto (estado de funcionamiento, motivo, reapertura), descripción, una tarjeta por oferta (acceso, público, frecuencia, horarios agrupados por día y el detalle de alojamiento, salones, visitas guiadas o circuito), características por grupo; al costado dirección con "Cómo llegar" (OpenStreetMap), contactos con enlace según el tipo (teléfono, correo, web, WhatsApp, redes) y distinciones. 404 → "Este lugar no está disponible".
 - Los modelos de la librería `shared` ahora reflejan los DTO reales de la API Pública.
