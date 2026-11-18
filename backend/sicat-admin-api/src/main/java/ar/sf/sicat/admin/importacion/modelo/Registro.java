@@ -65,14 +65,23 @@ public class Registro {
         }
     }
 
-    public void agregarCaracteristica(String grupo, String nombre, Integer cantidad) {
-        if (nombre == null || nombre.isBlank()) {
+    /** Agrega un párrafo a las notas internas (no salen en el sitio público). */
+    public void agregarNotaInterna(String texto) {
+        if (texto == null || texto.isBlank()) {
             return;
         }
-        String n = nombre.length() > 200 ? nombre.substring(0, 199) + "…" : nombre;
+        notasInternas = notasInternas == null ? texto.trim() : notasInternas + "\n\n" + texto.trim();
+    }
+
+    /** El nombre se normaliza y no se repite una característica igual o casi igual del mismo grupo (ADR 0017). */
+    public void agregarCaracteristica(String grupo, String nombre, Integer cantidad) {
+        String limpio = ar.sf.sicat.admin.importacion.lectura.Texto.normalizarCaracteristica(nombre);
+        if (limpio == null) {
+            return;
+        }
+        String n = limpio.length() > 200 ? limpio.substring(0, 199) + "…" : limpio;
         boolean repetida = caracteristicas.stream().anyMatch(c -> c.grupo().equalsIgnoreCase(grupo)
-                && ar.sf.sicat.admin.importacion.lectura.Texto.clave(c.nombre())
-                        .equals(ar.sf.sicat.admin.importacion.lectura.Texto.clave(n)));
+                && ar.sf.sicat.admin.importacion.lectura.Texto.mismaCaracteristica(c.nombre(), n));
         if (!repetida) {
             caracteristicas.add(new CaracteristicaValor(grupo, n, cantidad));
         }

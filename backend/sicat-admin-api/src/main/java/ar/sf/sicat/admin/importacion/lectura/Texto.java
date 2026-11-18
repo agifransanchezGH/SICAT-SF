@@ -218,4 +218,101 @@ public final class Texto {
     public static String recortar(String s, int max) {
         return s == null || s.length() <= max ? s : s.substring(0, max - 1).trim() + "…";
     }
+
+    // ------------------------------------------------------------------ características (ADR 0017)
+
+    private static final Pattern DIRECCION = Pattern.compile(
+            "\\b(calle|av|avda|avenida|bv|boulevard|bulevar|ruta|esquina|esq)\\b\\.?|\\p{L}{3,}\\.?\\s+n?[°º]?\\s*\\d{3,5}\\b",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    private static final Pattern NUMEROS = Pattern.compile("\\d+");
+    /** Parecido mínimo para tomar dos nombres como la misma característica (errores de tipeo, plurales). */
+    private static final double SIMILITUD_MISMA = 0.85;
+    /** Palabras que cambian el sentido: "Piscina climatizada" y "Piscina no climatizada" no son la misma. */
+    private static final Set<String> NEGACIONES = Set.of("no", "sin", "ni");
+
+    /**
+     * Nombre de característica prolijo: sin puntuación suelta al principio ni al final (".Darsenas"), espacios
+     * simples, sin espacios pegados a los paréntesis ("( en escaleras)") y, si viene todo en mayúsculas, en tipo
+     * oración ("RAMPAS EN LAS ESQUINAS" → "Rampas en las esquinas"). Siempre empieza con mayúscula.
+     */
+    public static String normalizarCaracteristica(String s) {
+        String t = limpio(s);
+        if (t == null) {
+            return null;
+        }
+        t = t.replaceAll("\\s+", " ")
+                .replaceAll("^[\\s.,;:\\-–_*/·]+", "")
+                .replaceAll("[\\s.,;:\\-–_*/·]+$", "")
+                .replaceAll("\\(\\s+", "(")
+                .replaceAll("\\s+\\)", ")")
+                .trim();
+        if (t.isEmpty()) {
+            return null;
+        }
+        boolean todoMayusculas = t.chars().anyMatch(Character::isUpperCase) && t.chars().noneMatch(Character::isLowerCase);
+        if (todoMayusculas && t.length() > 3) {
+            t = t.toLowerCase(Locale.of("es", "AR"));
+        }
+        return t.substring(0, 1).toUpperCase(Locale.of("es", "AR")) + t.substring(1);
+    }
+
+    /** Una "característica" que en realidad es una dirección ("Por calle Lavaisse 610"): va a notas internas. */
+    public static boolean pareceDireccion(String s) {
+        return s != null && DIRECCION.matcher(s).find();
+    }
+
+    /** Parecido entre dos textos, de 0 a 1 (distancia de Levenshtein relativa). */
+    public static double similitud(String a, String b) {
+        if (a.equals(b)) {
+            return 1;
+        }
+        if (a.isEmpty() || b.isEmpty()) {
+            return 0;
+        }
+        int[] previa = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) {
+            previa[j] = j;
+        }
+        for (int i = 1; i <= a.length(); i++) {
+            int[] actual = new int[b.length() + 1];
+            actual[0] = i;
+            for (int j = 1; j <= b.length(); j++) {
+                int costo = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                actual[j] = Math.min(Math.min(previa[j] + 1, actual[j - 1] + 1), previa[j - 1] + costo);
+            }
+            previa = actual;
+        }
+        return 1 - (double) previa[b.length()] / Math.max(a.length(), b.length());
+    }
+
+    /**
+     * Dos nombres de característica que son la misma con un error de tipeo o una diferencia de plural
+     * ("Grifo monocomando" / "Grifo monomando", "Sistema contra incendio" / "incendios"). No se juntan nombres
+     * cortos (menos de 8 letras), los que tienen números distintos ("cap. 200" / "cap. 700") ni los que difieren
+     * en una negación ("climatizada" / "no climatizada").
+     */
+    public static boolean mismaCaracteristica(String a, String b) {
+        String ka = clave(a);
+        String kb = clave(b);
+        if (ka.equals(kb)) {
+            return true;
+        }
+        if (Math.min(ka.length(), kb.length()) < 8 || !numeros(ka).equals(numeros(kb)) || !negaciones(ka).equals(negaciones(kb))) {
+            return false;
+        }
+        return similitud(ka, kb) >= SIMILITUD_MISMA;
+    }
+
+    private static List<String> negaciones(String s) {
+        return java.util.Arrays.stream(s.split(" ")).filter(NEGACIONES::contains).toList();
+    }
+
+    private static List<String> numeros(String s) {
+        List<String> r = new ArrayList<>();
+        Matcher m = NUMEROS.matcher(s);
+        while (m.find()) {
+            r.add(m.group());
+        }
+        return r;
+    }
 }
