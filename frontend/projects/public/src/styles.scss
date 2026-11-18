@@ -1,52 +1,53 @@
-/* Tema del sitio público: Angular Material (M3) con paleta neutra, igual que el panel.
-   Para la identidad de la Municipalidad alcanza con cambiar las paletas y las variables --sicat-*. */
-@use '@angular/material' as mat;
+/* Sitio público: la identidad compartida de SICAT SF (shared/src/estilos, ADR 0016). */
+@use '../../shared/src/estilos/sicat';
 
 html {
-  color-scheme: light;
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-      theme-type: light,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
-
-  --sicat-fondo: #f6f7f9;
-  --sicat-borde: #dde1e6;
-  --sicat-texto-suave: #5a626e;
-  --sicat-acento: #c79100;
-  --sicat-alerta: #a15c00;
+  @include sicat.tema(0);
 }
 
-body {
-  margin: 0;
-  font-family: Roboto, system-ui, sans-serif;
-  background: var(--sicat-fondo);
-  color: var(--mat-sys-on-surface);
+@include sicat.base;
+
+/* Transición del listado a la ficha: el nombre "viaja" (View Transitions); el resto se funde. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
 }
 
-a {
-  color: var(--mat-sys-primary);
+::view-transition-group(*) {
+  animation-duration: var(--sicat-duracion);
+  animation-timing-function: var(--sicat-curva);
 }
 
 .contenido {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: 24px 16px 56px;
   box-sizing: border-box;
 }
 
-.suave {
-  color: var(--sicat-texto-suave);
+/* Titulares: Archivo ancha, como la cartelería del puerto */
+.titular {
+  margin: 0;
+  font-weight: 800;
+  font-stretch: var(--sicat-ancho-titular);
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+/* Nombres de lugares */
+.nombre-lugar {
+  font-weight: 700;
+  font-stretch: var(--sicat-ancho-nombre);
+  letter-spacing: -0.005em;
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
 .tarjeta {
   background: var(--mat-sys-surface);
   border: 1px solid var(--sicat-borde);
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .vacio {
@@ -59,7 +60,7 @@ a {
   display: inline-block;
   padding: 2px 10px;
   border-radius: 999px;
-  font-size: 12px;
-  background: var(--mat-sys-secondary-container);
-  color: var(--mat-sys-on-secondary-container);
+  font-size: 13px;
+  background: var(--sicat-rio-claro);
+  color: var(--sicat-rio);
 }

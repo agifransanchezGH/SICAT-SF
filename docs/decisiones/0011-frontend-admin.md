@@ -10,7 +10,7 @@ El paso 9 del orden de construcción pide el frontend admin (ABM y filtros) sobr
 
 ### Librería y estilo
 - **Angular Material 20 (M3)**, componentes standalone y señales.
-- **Paleta neutra** por ahora (`azure`/`blue` de Material). Los colores propios del panel están en variables `--sicat-*` en `projects/admin/src/styles.scss`; para aplicar la identidad de la Municipalidad alcanza con cambiar las paletas y esas variables.
+- **Identidad compartida con el sitio público** (ADR 0016): tema y variables `--sicat-*` en `projects/shared/src/estilos/`, con densidad -1 para el panel.
 - Formularios en `outline`, locale `es-AR`, paginador en español.
 
 ### Estructura de pantallas

@@ -16,7 +16,7 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { ESTADOS_PUBLICACION } from '../core/modelos';
 
-const COLOR_ESTADO: Record<string, string> = { PUBLICADO: '#2e7d32', BORRADOR: '#607d8b', OCULTO: '#c62828' };
+const COLOR_ESTADO: Record<string, string> = { PUBLICADO: '#3f6a2e', BORRADOR: '#6b7c80', OCULTO: '#b3261e' };
 const TEXTO_ESTADO: Record<string, string> = { PUBLICADO: 'Publicado', BORRADOR: 'Borrador', OCULTO: 'Oculto' };
 const TEXTO_GEO: Record<string, string> = {
   AUTOMATICO: 'Ubicación automática: revisar',
@@ -67,8 +67,8 @@ const TEXTO_GEO: Record<string, string> = {
     .mapa { flex: 1; min-height: 420px; overflow: hidden; }
     .leyenda { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-top: -8px; }
     .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
-    .leyenda i.aro { background: #fff; border: 3px solid #f9a825; width: 8px; height: 8px; }
-    .leyenda i.grupo { background: #37474f; color: #fff; width: 16px; height: 16px; font: 600 10px/16px sans-serif; text-align: center; font-style: normal; vertical-align: -3px; }
+    .leyenda i.aro { background: #fff; border: 3px solid #b5832a; width: 8px; height: 8px; }
+    .leyenda i.grupo { background: #16262a; color: #fff; width: 16px; height: 16px; font: 600 10px/16px sans-serif; text-align: center; font-style: normal; vertical-align: -3px; }
   `,
 })
 export class MapaPage {
@@ -137,7 +137,7 @@ export class MapaPage {
     this.api.get<GeoJSON.FeatureCollection<GeoJSON.LineString>>('/mapa/circuitos').subscribe({
       next: (geo) =>
         L.geoJSON(geo, {
-          style: { color: '#7b1fa2', weight: 4, opacity: 0.8 },
+          style: { color: '#3f6a2e', weight: 4, opacity: 0.85 },
           onEachFeature: (f, capa) => {
             const p = f.properties ?? {};
             capa.bindPopup(
@@ -156,24 +156,24 @@ export class MapaPage {
     const bloque = (p: Record<string, string>) =>
       `<strong>${escapar(p['nombre'])}</strong>` +
       `<div>${TEXTO_ESTADO[p['estadoPublicacion']] ?? ''}</div>` +
-      (p['estadoGeo'] ? `<div style="color:#5a626e">${escapar(TEXTO_GEO[p['estadoGeo']] ?? p['estadoGeo'])}</div>` : '') +
+      (p['estadoGeo'] ? `<div style="color:#52646a">${escapar(TEXTO_GEO[p['estadoGeo']] ?? p['estadoGeo'])}</div>` : '') +
       `<div style="margin-top:6px"><a href="/establecimientos/${escapar(p['id'])}" data-ruta="/establecimientos/${escapar(p['id'])}">Abrir ficha</a></div>`;
     // Varios establecimientos en el mismo punto: un solo marcador con la cantidad y un popup con todos.
     for (const g of agruparPorPunto<Record<string, string>>(geo)) {
       const sinVerificar = g.items.some((p) => p['estadoGeo'] && p['estadoGeo'] !== 'VERIFICADO');
       const estados = new Set(g.items.map((p) => p['estadoPublicacion']));
       // Con estados distintos el grupo va en gris oscuro; el popup detalla el de cada uno.
-      const color = estados.size === 1 ? (COLOR_ESTADO[g.items[0]['estadoPublicacion']] ?? '#607d8b') : '#37474f';
+      const color = estados.size === 1 ? (COLOR_ESTADO[g.items[0]['estadoPublicacion']] ?? '#607d8b') : '#16262a';
       const capa =
         g.items.length === 1
           ? L.circleMarker(g.latlng, {
               radius: 7,
-              color: sinVerificar ? '#f9a825' : '#fff',
+              color: sinVerificar ? '#b5832a' : '#fff',
               weight: sinVerificar ? 3 : 2,
               fillColor: color,
               fillOpacity: 0.95,
             })
-          : L.marker(g.latlng, { icon: iconoGrupo(g.items.length, color, sinVerificar ? '#f9a825' : '#fff') });
+          : L.marker(g.latlng, { icon: iconoGrupo(g.items.length, color, sinVerificar ? '#b5832a' : '#fff') });
       capa.bindPopup(g.items.length === 1 ? bloque(g.items[0]) : popupDeGrupo(g.items.map(bloque))).addTo(this.puntos);
     }
     this.cantidad.set(geo.features.length);

@@ -50,7 +50,7 @@ export class SicatMapa implements AfterViewInit, OnDestroy {
 }
 
 /** Ícono de "pin" en CSS (sin imágenes), para marcadores arrastrables o destacados. */
-export function iconoPin(color = '#d32f2f'): L.DivIcon {
+export function iconoPin(color = '#b3261e'): L.DivIcon {
   return L.divIcon({
     className: 'sicat-pin',
     html: `<span style="display:block;width:22px;height:22px;border-radius:50% 50% 50% 0;background:${color};
@@ -94,11 +94,11 @@ export function agruparPorPunto<P = Record<string, unknown>>(
 }
 
 /** Marcador con la cantidad de establecimientos de un mismo punto. */
-export function iconoGrupo(cantidad: number, color = '#1565c0', borde = '#fff'): L.DivIcon {
+export function iconoGrupo(cantidad: number, color = '#1d5c63', borde = '#fff'): L.DivIcon {
   return L.divIcon({
     className: 'sicat-grupo',
     html: `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
-      background:${color};border:2px solid ${borde};box-sizing:border-box;color:#fff;font:600 12px/1 sans-serif;
+      background:${color};border:2px solid ${borde};box-sizing:border-box;color:#fff;font:600 12px/1 Archivo,sans-serif;
       box-shadow:0 1px 4px rgb(0 0 0 / 40%)">${cantidad}</span>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
@@ -108,7 +108,7 @@ export function iconoGrupo(cantidad: number, color = '#1565c0', borde = '#fff'):
 
 /** Popup de un grupo: el bloque de cada establecimiento, separados por una línea. */
 export function popupDeGrupo(bloques: string[]): string {
-  return `<div style="font-size:12px;color:#5a626e;margin-bottom:4px">${bloques.length} establecimientos en este lugar</div>` +
+  return `<div style="font-size:12px;color:#52646a;margin-bottom:4px">${bloques.length} establecimientos en este lugar</div>` +
     `<div style="max-height:240px;overflow:auto">` +
     bloques.map((b, i) => `<div style="${i ? 'border-top:1px solid #ddd;margin-top:6px;padding-top:6px' : ''}">${b}</div>`).join('') +
     `</div>`;
