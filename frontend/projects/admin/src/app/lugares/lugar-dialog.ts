@@ -1,4 +1,4 @@
-import { Component, NgZone, inject, signal } from '@angular/core';
+import { Component, NgZone, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,6 +12,10 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { ESTADOS_GEO, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
+import { POSICION_EN_COLA } from './cola';
+
+/** Lo que devuelve el diálogo al cerrarse guardando. */
+export type LugarGuardado = Lugar & { pasarAlSiguiente?: boolean; saltado?: boolean };
 import { RouterLink } from '@angular/router';
 import * as L from 'leaflet';
 import { SANTA_FE, SicatMapa, iconoPin } from 'shared';
@@ -26,8 +30,15 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
 @Component({
   selector: 'app-lugar-dialog',
   imports: [ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, SelectorRemoto, SicatMapa, RouterLink],
+  host: {
+    '(keydown.control.enter)': 'atajo($event)',
+    '(keydown.meta.enter)': 'atajo($event)',
+  },
   template: `
-    <h2 mat-dialog-title>{{ lugar ? 'Editar lugar' : 'Nuevo lugar' }}</h2>
+    <h2 mat-dialog-title>
+      {{ lugar ? 'Editar lugar' : 'Nuevo lugar' }}
+      @if (cola) { <span class="posicion">{{ cola.posicion }} de {{ cola.total }}</span> }
+    </h2>
     <mat-dialog-content>
       <form class="grilla" [formGroup]="form">
         <mat-form-field class="ancho-completo">
@@ -104,10 +115,20 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancelar</button>
-      @if (lugar && lugar.coordenadas && lugar.estadoGeo !== 'VERIFICADO') {
-        <button mat-stroked-button (click)="verificar()" [disabled]="guardando()">Confirmar ubicación</button>
+      @if (cola) {
+        <!-- En una cola: guarda como verificado (con el pin donde quedó) y abre el siguiente -->
+        <button mat-button (click)="saltar()" [disabled]="guardando()">Saltar</button>
+        <button mat-stroked-button (click)="guardar()" [disabled]="form.invalid || guardando()">Guardar</button>
+        <button mat-flat-button aria-keyshortcuts="Control+Enter" (click)="confirmarYSiguiente()"
+                [disabled]="!puedeConfirmar() || guardando()">
+          Confirmar y siguiente <kbd aria-hidden="true">Ctrl+Enter</kbd>
+        </button>
+      } @else {
+        @if (lugar && lugar.coordenadas && lugar.estadoGeo !== 'VERIFICADO') {
+          <button mat-stroked-button (click)="verificar()" [disabled]="guardando()">Confirmar ubicación</button>
+        }
+        <button mat-flat-button (click)="guardar()" [disabled]="form.invalid || guardando()">Guardar</button>
       }
-      <button mat-flat-button (click)="guardar()" [disabled]="form.invalid || guardando()">Guardar</button>
     </mat-dialog-actions>
   `,
   styles: `
@@ -116,12 +137,15 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
     .ayuda-mapa { margin: 4px 0 6px; font-size: 13px; }
     .relacionados { font-size: 14px; padding: 4px 0; }
     .mapa { height: 280px; border-radius: 8px; overflow: hidden; border: 1px solid var(--sicat-borde); }
+    .posicion { margin-left: 8px; font-size: 14px; font-weight: 500; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
+    kbd { margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / 18%); font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.4; }
   `,
 })
 export class LugarDialog {
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
-  private readonly ref = inject(MatDialogRef<LugarDialog, Lugar>);
+  private readonly ref = inject(MatDialogRef<LugarDialog, LugarGuardado>);
+  protected readonly cola = inject(POSICION_EN_COLA, { optional: true });
   private readonly catalogos = inject(Catalogos);
   private readonly zona = inject(NgZone);
   protected readonly lugar = inject<Lugar | null>(MAT_DIALOG_DATA);
@@ -160,6 +184,11 @@ export class LugarDialog {
     };
     this.form.controls.lat.valueChanges.subscribe(marcar);
     this.form.controls.lng.valueChanges.subscribe(marcar);
+    this.form.valueChanges.subscribe(() => {
+      const { lat, lng } = this.form.getRawValue();
+      this.coordenadas.set(lat != null && lng != null ? { lat, lng } : null);
+      this.invalido.set(this.form.invalid);
+    });
   }
 
   protected alListo(m: L.Map): void {
@@ -196,7 +225,33 @@ export class LugarDialog {
     this.guardar();
   }
 
-  protected guardar(): void {
+  private readonly coordenadas = signal(this.l?.coordenadas ?? null);
+  /** Hay coordenadas en el formulario (las originales o un pin recién marcado). */
+  protected readonly puedeConfirmar = computed(() => this.coordenadas() != null && !this.invalido());
+  private readonly invalido = signal(this.form.invalid);
+
+  protected confirmarYSiguiente(): void {
+    if (!this.puedeConfirmar() || this.guardando()) {
+      return;
+    }
+    this.form.controls.estadoGeo.setValue('VERIFICADO');
+    this.guardar(true);
+  }
+
+  /** Pasa al siguiente de la cola sin guardar nada (p. ej. una dirección que hay que averiguar). */
+  protected saltar(): void {
+    this.ref.close({ ...this.l!, pasarAlSiguiente: true, saltado: true });
+  }
+
+  /** Ctrl+Enter (Cmd+Enter en Mac): en una cola, confirma y pasa al siguiente. */
+  protected atajo(evento: Event): void {
+    if (this.cola) {
+      evento.preventDefault();
+      this.confirmarYSiguiente();
+    }
+  }
+
+  protected guardar(pasarAlSiguiente = false): void {
     const f = this.form.getRawValue();
     const coordenadas = f.lat != null && f.lng != null ? { lat: f.lat, lng: f.lng } : null;
     const cuerpo = {
@@ -217,8 +272,10 @@ export class LugarDialog {
     const pedido = this.l ? this.api.put<Lugar>(`/lugares/${this.l.id}`, cuerpo) : this.api.post<Lugar>('/lugares', cuerpo);
     pedido.subscribe({
       next: (r) => {
-        this.avisos.ok('Lugar guardado');
-        this.ref.close(r);
+        if (!pasarAlSiguiente) {
+          this.avisos.ok('Lugar guardado'); // al pasar al siguiente avisa la pantalla, con el nombre del próximo
+        }
+        this.ref.close({ ...r, pasarAlSiguiente });
       },
       error: (e) => {
         this.guardando.set(false);

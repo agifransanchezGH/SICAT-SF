@@ -55,6 +55,25 @@ export interface EstablecimientoResumen {
   destacado: boolean;
   activo: boolean;
   categorias: string[];
+  /** Requisitos de publicación que no cumple (vacío si se puede publicar). */
+  faltantes: Faltante[];
+}
+
+export type Requisito =
+  | 'ESTABLECIMIENTO_ACTIVO' | 'OFERENTE_ACTIVO' | 'LUGAR' | 'COORDENADAS' | 'UBICACION_VERIFICADA' | 'OFERTA_ACTIVA';
+
+export interface Faltante {
+  codigo: Requisito;
+  /** Texto corto: "una oferta activa", "ubicación sin verificar". */
+  texto: string;
+}
+
+/** GET /contadores: pendientes de trabajo que muestra el menú. */
+export interface ContadoresPanel {
+  ubicacionesARevisar: number;
+  listosParaPublicar: number;
+  posiblesDuplicados: number;
+  contactosARevisar: number;
 }
 
 export interface Establecimiento {
@@ -78,6 +97,8 @@ export interface EstadoPublicacionInfo {
   estado: EstadoPublicacion;
   puedePublicarse: boolean;
   faltantes: string[];
+  /** Lo mismo que faltantes, con el código de cada requisito. */
+  requisitos: { codigo: Requisito; texto: string; mensaje: string }[];
 }
 
 export interface CanalContacto {
@@ -214,6 +235,15 @@ export interface Lugar {
   hijos?: Ref[];
   /** Establecimientos ubicados en este lugar. */
   establecimientos?: { id: number; nombre: string; estadoPublicacion: EstadoPublicacion; activo: boolean }[];
+  /** Señal de calidad de la ubicación (listado y detalle). */
+  calidad?: CalidadUbicacion;
+}
+
+export type NivelCalidad = 'BAJA' | 'MEDIA' | 'ALTA' | 'VERIFICADA';
+
+export interface CalidadUbicacion {
+  nivel: NivelCalidad;
+  motivos: string[];
 }
 
 export type Rol = 'ADMIN' | 'CARGADOR' | 'CONSULTA';
@@ -242,7 +272,18 @@ export interface Auditoria {
 export interface GrupoDuplicados {
   clave: string;
   mismaDireccion: boolean;
-  establecimientos: { id: number; nombre: string; direccion: string | null; estadoPublicacion: EstadoPublicacion }[];
+  establecimientos: DuplicadoItem[];
+}
+
+export interface DuplicadoItem {
+  id: number;
+  nombre: string;
+  direccion: string | null;
+  estadoPublicacion: EstadoPublicacion;
+  oferente: string;
+  categorias: string[];
+  ofertasActivas: number;
+  contactos: { tipo: string; valor: string; esPublico: boolean }[];
 }
 
 export interface PerfilImportacion {
