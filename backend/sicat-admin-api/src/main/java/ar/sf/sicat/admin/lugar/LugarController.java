@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.sf.sicat.admin.comun.Roles;
+import ar.sf.sicat.admin.comun.lote.LoteSolicitud;
+import ar.sf.sicat.admin.comun.lote.ResultadoLoteDto;
 import ar.sf.sicat.admin.lugar.dto.LugarDto;
 import ar.sf.sicat.admin.lugar.dto.LugarSolicitud;
 import ar.sf.sicat.core.comun.PaginaDto;
@@ -31,15 +33,28 @@ import jakarta.validation.Valid;
 public class LugarController {
 
     private final LugarService servicio;
+    private final VerificacionLoteService verificacion;
 
-    public LugarController(LugarService servicio) {
+    public LugarController(LugarService servicio, VerificacionLoteService verificacion) {
         this.servicio = servicio;
+        this.verificacion = verificacion;
+    }
+
+    @PostMapping("/lote/verificar")
+    @PreAuthorize(Roles.CARGA)
+    @Operation(summary = "Confirma varias ubicaciones automáticas",
+            description = "Pasa a VERIFICADO las AUTOMATICO con coordenadas, cada una en su propia transacción. Las de "
+                    + "otro estado o sin coordenadas se informan en 'errores' sin frenar a las demás; las ya verificadas "
+                    + "cuentan como confirmadas. Hasta " + LoteSolicitud.MAXIMO + " ids.")
+    public ResultadoLoteDto verificarEnLote(@Valid @RequestBody LoteSolicitud solicitud) {
+        return verificacion.verificar(solicitud.ids());
     }
 
     @GetMapping
     @PreAuthorize(Roles.LECTURA)
     @Operation(summary = "Lista lugares",
-            description = "Paginado. Filtros: q (nombre, calle o nombre de un establecimiento ubicado ahí), tipoLugar, padreId, localidadId, bbox, estadoGeo (uno o varios).")
+            description = "Paginado. Filtros: q (nombre, calle o nombre de un establecimiento ubicado ahí), tipoLugar, padreId, localidadId, bbox, estadoGeo (uno o varios). "
+                    + "orden=duda pone primero lo más dudoso (NO_ENCONTRADO, APROXIMADO, PENDIENTE, AUTOMATICO). Cada fila trae 'calidad'.")
     public PaginaDto<LugarDto> listar(
             @RequestParam(required = false) String q,
             @Parameter(description = "Id del tipo de lugar") @RequestParam(required = false) Long tipoLugar,
@@ -49,8 +64,10 @@ public class LugarController {
             @RequestParam(required = false) String bbox,
             @Parameter(description = "Estados de geocodificación: PENDIENTE, AUTOMATICO, APROXIMADO, NO_ENCONTRADO, VERIFICADO")
             @RequestParam(required = false) java.util.Set<String> estadoGeo,
+            @Parameter(description = "\"duda\": primero lo más dudoso (ignora sort)")
+            @RequestParam(required = false) @jakarta.validation.constraints.Pattern(regexp = "duda") String orden,
             @ParameterObject @PageableDefault(size = 20, sort = "nombre") Pageable pageable) {
-        return servicio.listar(q, tipoLugar, padreId, localidadId, bbox, estadoGeo, pageable);
+        return servicio.listar(q, tipoLugar, padreId, localidadId, bbox, estadoGeo, orden, pageable);
     }
 
     @GetMapping("/{id}")

@@ -29,7 +29,15 @@ public record LugarDto(
         String estadoGeo,
         @Schema(description = "Solo en el detalle") List<LugarRef> hijos,
         @Schema(description = "Establecimientos ubicados en este lugar (activos y dados de baja)")
-        List<EstablecimientoRef> establecimientos) {
+        List<EstablecimientoRef> establecimientos,
+        @Schema(description = "Señal de calidad de la ubicación (solo en el listado y el detalle)") Calidad calidad) {
+
+    /** Qué tan confiable es la ubicación: de más dudosa a confirmada. */
+    public enum Nivel { BAJA, MEDIA, ALTA, VERIFICADA }
+
+    /** Nivel y motivos en palabras ("Mismo punto que 3 lugares más"). */
+    public record Calidad(Nivel nivel, List<String> motivos) {
+    }
 
     public record LugarRef(Long id, String nombre) {
     }

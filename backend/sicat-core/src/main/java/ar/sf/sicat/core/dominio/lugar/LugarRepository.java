@@ -21,6 +21,19 @@ public interface LugarRepository extends JpaRepository<Lugar, Long>, JpaSpecific
 
     long countByEstadoGeo(String estadoGeo);
 
+    /**
+     * Para cada lugar pedido, cuántos otros lugares tienen el mismo punto (a menos de un metro). Muchos puntos
+     * repetidos son la calle o la zona que devolvió OpenStreetMap, no la puerta. Filas: [id_lugar, cantidad].
+     */
+    @Query(value = """
+            SELECT l.id_lugar,
+                   (SELECT count(*) FROM sicat.lugar o
+                    WHERE o.id_lugar <> l.id_lugar AND o.punto IS NOT NULL
+                      AND public.ST_DWithin(o.punto, l.punto, 1))
+            FROM sicat.lugar l
+            WHERE l.id_lugar IN (:ids) AND l.punto IS NOT NULL""", nativeQuery = true)
+    List<Object[]> puntosCompartidos(@Param("ids") java.util.Collection<Long> ids);
+
     /** Ids de lugares cuyo punto cae dentro del rectángulo (PostGIS). */
     @Query(value = """
             SELECT l.id_lugar FROM sicat.lugar l

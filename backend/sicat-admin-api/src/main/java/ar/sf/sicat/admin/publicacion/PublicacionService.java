@@ -15,6 +15,7 @@ import ar.sf.sicat.core.dominio.establecimiento.EstadoPublicacion;
 import ar.sf.sicat.core.dominio.establecimiento.Establecimiento;
 import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
 import ar.sf.sicat.core.dominio.lugar.Lugar;
+import ar.sf.sicat.core.dominio.oferta.Oferta;
 import ar.sf.sicat.core.dominio.oferta.OfertaRepository;
 
 /**
@@ -41,8 +42,11 @@ public class PublicacionService {
     @Transactional(readOnly = true)
     public EstadoPublicacionDto estado(Long id) {
         Establecimiento e = buscar(establecimientos, id, "Establecimiento");
-        List<String> faltantes = faltantes(e);
-        return new EstadoPublicacionDto(e.getEstadoPublicacion(), faltantes.isEmpty(), faltantes);
+        List<Faltante> faltan = evaluar(e, ofertas.findByEstablecimientoIdOrderById(e.getId()));
+        return new EstadoPublicacionDto(e.getEstadoPublicacion(), faltan.isEmpty(),
+                faltan.stream().map(Faltante::mensaje).toList(),
+                faltan.stream().map(f -> new EstadoPublicacionDto.Requisito(f.requisito(), f.requisito().corto(),
+                        f.mensaje())).toList());
     }
 
     @Transactional
@@ -65,28 +69,43 @@ public class PublicacionService {
         e.setEstadoPublicacion(EstadoPublicacion.OCULTO);
     }
 
-    /** Lo que falta para poder publicar (vacío si cumple todo). */
+    /** Lo que falta para poder publicar (vacío si cumple todo), con el mensaje largo. */
     public List<String> faltantes(Establecimiento e) {
-        List<String> faltan = new ArrayList<>();
+        return evaluar(e, e.getId() == null ? List.of() : ofertas.findByEstablecimientoIdOrderById(e.getId()))
+                .stream().map(Faltante::mensaje).toList();
+    }
+
+    /** Requisito incumplido y su mensaje con nombres. */
+    public record Faltante(Requisito requisito, String mensaje) {
+    }
+
+    /**
+     * Único lugar donde viven los requisitos. Recibe las ofertas ya cargadas para que un listado pueda
+     * evaluar una página entera con una sola consulta. La consulta SQL equivalente (filtro "listos para
+     * publicar" y contadores) es {@code EstablecimientoRepository.LISTOS_PARA_PUBLICAR}; un test las compara.
+     */
+    public List<Faltante> evaluar(Establecimiento e, List<Oferta> ofertasDelEstablecimiento) {
+        List<Faltante> faltan = new ArrayList<>();
         if (!Boolean.TRUE.equals(e.getActivo())) {
-            faltan.add("El establecimiento está dado de baja");
+            faltan.add(new Faltante(Requisito.ESTABLECIMIENTO_ACTIVO, "El establecimiento está dado de baja"));
         }
         if (!Boolean.TRUE.equals(e.getOferente().getActivo())) {
-            faltan.add("El oferente '" + e.getOferente().getNombre() + "' está dado de baja");
+            faltan.add(new Faltante(Requisito.OFERENTE_ACTIVO,
+                    "El oferente '" + e.getOferente().getNombre() + "' está dado de baja"));
         }
         Lugar lugar = e.getLugar();
         if (lugar == null) {
-            faltan.add("Falta asignar un lugar");
+            faltan.add(new Faltante(Requisito.LUGAR, "Falta asignar un lugar"));
         } else if (lugar.getPunto() == null) {
-            faltan.add("El lugar '" + lugar.getNombre() + "' no tiene coordenadas");
+            faltan.add(new Faltante(Requisito.COORDENADAS, "El lugar '" + lugar.getNombre() + "' no tiene coordenadas"));
         } else if ("AUTOMATICO".equals(lugar.getEstadoGeo()) || "APROXIMADO".equals(lugar.getEstadoGeo())) {
-            faltan.add("Las coordenadas del lugar '" + lugar.getNombre()
-                    + "' se calcularon automáticamente: verificalas en el mapa (estadoGeo = VERIFICADO)");
+            faltan.add(new Faltante(Requisito.UBICACION_VERIFICADA, "Las coordenadas del lugar '" + lugar.getNombre()
+                    + "' se calcularon automáticamente: verificalas en el mapa (estadoGeo = VERIFICADO)"));
         }
-        boolean tieneOferta = e.getId() != null && ofertas.findByEstablecimientoIdOrderById(e.getId()).stream()
+        boolean tieneOferta = ofertasDelEstablecimiento.stream()
                 .anyMatch(o -> Boolean.TRUE.equals(o.getActivo()) && Boolean.TRUE.equals(o.getCategoria().getActivo()));
         if (!tieneOferta) {
-            faltan.add("Falta al menos una oferta activa con categoría activa");
+            faltan.add(new Faltante(Requisito.OFERTA_ACTIVA, "Falta al menos una oferta activa con categoría activa"));
         }
         return faltan;
     }

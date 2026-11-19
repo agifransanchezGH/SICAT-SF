@@ -12,7 +12,8 @@ import { Avisos } from '../core/avisos';
 import { Establecimiento, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
 import { LugarDialog } from '../lugares/lugar-dialog';
-import { avisarSiHayCambios } from '../core/cambios-pendientes';
+
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Datos generales de un establecimiento: se usa en el alta y en la pestaña "Datos" de la ficha. */
 @Component({
@@ -76,6 +77,11 @@ import { LugarDialog } from '../lugares/lugar-dialog';
 
       @if (editable()) {
         <div class="ancho-completo botones">
+          @if (enCola()) {
+            <button mat-stroked-button type="button" (click)="guardar(true)" [disabled]="form.invalid || form.pristine || guardando()">
+              Guardar y pasar al siguiente
+            </button>
+          }
           <button mat-flat-button type="submit" [disabled]="form.invalid || form.pristine || guardando()">
             {{ establecimiento() ? 'Guardar cambios' : 'Crear establecimiento' }}
           </button>
@@ -88,7 +94,7 @@ import { LugarDialog } from '../lugares/lugar-dialog';
     .lugar app-selector-remoto { flex: 1 1 320px; }
     .lugar button { margin-top: 8px; }
     .direccion { margin: -4px 0 8px; }
-    .botones { display: flex; justify-content: flex-end; }
+    .botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
   `,
 })
 export class EstablecimientoForm implements OnInit {
@@ -100,6 +106,9 @@ export class EstablecimientoForm implements OnInit {
   readonly establecimiento = input<Establecimiento | null>(null);
   readonly editable = input(true);
   readonly guardado = output<Establecimiento>();
+  /** La ficha se abrió desde una cola: se ofrece "Guardar y pasar al siguiente". */
+  readonly enCola = input(false);
+  readonly pasarAlSiguiente = output<void>();
 
   private readonly selectorLugar = viewChild.required<SelectorRemoto>('selectorLugar');
   protected readonly guardando = signal(false);
@@ -157,6 +166,13 @@ export class EstablecimientoForm implements OnInit {
     });
   }
 
+  /** El checklist pidió "un lugar asignado": se lleva el foco al buscador de lugar. */
+  enfocarLugar(): void {
+    const campo = document.querySelector<HTMLInputElement>('app-establecimiento-form [formcontrolname="lugarId"] input');
+    campo?.scrollIntoView({ block: 'center' });
+    campo?.focus();
+  }
+
   private fijarLugar(l?: Lugar): void {
     if (l) {
       this.selectorLugar().fijar(l.id, l.nombre);
@@ -164,7 +180,7 @@ export class EstablecimientoForm implements OnInit {
     }
   }
 
-  protected guardar(): void {
+  protected guardar(yPasarAlSiguiente = false): void {
     const f = this.form.getRawValue();
     const e = this.establecimiento();
     const cuerpo = {
@@ -190,6 +206,9 @@ export class EstablecimientoForm implements OnInit {
         this.form.markAsPristine();
         this.avisos.ok(e ? 'Cambios guardados' : 'Establecimiento creado');
         this.guardado.emit(r);
+        if (yPasarAlSiguiente) {
+          this.pasarAlSiguiente.emit();
+        }
       },
       error: (err) => {
         this.guardando.set(false);

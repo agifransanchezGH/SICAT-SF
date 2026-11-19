@@ -18,7 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import ar.sf.sicat.admin.comun.Roles;
 import ar.sf.sicat.admin.importacion.dto.EstadoGeocodificacion;
-import ar.sf.sicat.admin.importacion.dto.GrupoDuplicadosDto;
 import ar.sf.sicat.admin.importacion.dto.ResultadoImportacion;
 import ar.sf.sicat.admin.importacion.geo.GeocodificacionService;
 import ar.sf.sicat.admin.importacion.modelo.Perfil;
@@ -35,13 +34,10 @@ public class ImportacionController {
 
     private final ImportacionService importacion;
     private final GeocodificacionService geocodificacion;
-    private final DuplicadosService duplicados;
 
-    public ImportacionController(ImportacionService importacion, GeocodificacionService geocodificacion,
-                                 DuplicadosService duplicados) {
+    public ImportacionController(ImportacionService importacion, GeocodificacionService geocodificacion) {
         this.importacion = importacion;
         this.geocodificacion = geocodificacion;
-        this.duplicados = duplicados;
     }
 
     public record PerfilDto(String archivo, String archivoEsperado, List<Perfil.HojaConfig> hojas) {
@@ -94,12 +90,5 @@ public class ImportacionController {
     @Operation(summary = "Avance de la geocodificación")
     public EstadoGeocodificacion estadoGeocodificacion() {
         return geocodificacion.estado();
-    }
-
-    @GetMapping("/establecimientos/duplicados")
-    @PreAuthorize(Roles.CARGA)
-    @Operation(summary = "Posibles duplicados", description = "Establecimientos activos con el mismo nombre normalizado.")
-    public List<GrupoDuplicadosDto> duplicados() {
-        return duplicados.buscar();
     }
 }
