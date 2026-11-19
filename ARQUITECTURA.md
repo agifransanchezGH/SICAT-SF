@@ -247,6 +247,11 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | POST | `/caracteristicas/{id}/separacion` | Separa una entrada pegada en varias, con los mismos usos | ADMIN |
 | POST | `/caracteristicas/{id}/a-notas-internas` | Pasa a notas internas de cada establecimiento y la borra | ADMIN |
 
+### Panel
+| Método | Ruta | Descripción | Rol |
+|---|---|---|---|
+| GET | `/contadores` | Pendientes para el menú: `ubicacionesARevisar`, `listosParaPublicar`, `posiblesDuplicados` (grupos), `contactosARevisar`. Mismos criterios que los filtros de cada pantalla | todos |
+
 ### Oferentes
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
@@ -261,15 +266,19 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Establecimientos
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| GET | `/establecimientos` | Lista con filtros: `q`, `categoria`, `estado`, `oferenteId`, `localidadId`, `bbox`, paginación | todos |
+| GET | `/establecimientos` | Lista con filtros: `q`, `categoria`, `estado`, `oferenteId`, `localidadId`, `bbox`, `ubicacion`, `contactosARevisar`, `listos` (BORRADOR u OCULTO que cumple los requisitos), paginación. Cada fila trae `faltantes` (requisitos de publicación que no cumple, con `codigo` y `texto`) | todos |
 | GET | `/establecimientos/{id}` | Detalle completo (datos comunes + ofertas) | todos |
 | POST | `/establecimientos` | Crea | ADMIN, CARGADOR |
 | PUT | `/establecimientos/{id}` | Modifica | ADMIN, CARGADOR |
 | DELETE | `/establecimientos/{id}` | Baja lógica | ADMIN |
-| GET | `/establecimientos/{id}/publicacion` | Estado y requisitos que faltan para publicar | todos |
+| GET | `/establecimientos/{id}/publicacion` | Estado y requisitos que faltan para publicar (`faltantes` y `requisitos` con código, para el checklist de la ficha) | todos |
 | POST | `/establecimientos/{id}/publicar` | Pasa a `PUBLICADO` si cumple los requisitos (422 con `errores` si no) | ADMIN, CARGADOR |
 | POST | `/establecimientos/{id}/despublicar` | Pasa a `OCULTO` (422 si está en `BORRADOR`) | ADMIN, CARGADOR |
-| GET | `/establecimientos/duplicados` | Grupos de establecimientos activos con el mismo nombre normalizado (primero los de igual dirección) | ADMIN, CARGADOR |
+| POST | `/establecimientos/lote/publicar` | `{ ids }` (hasta 500). Publica cada uno en su propia transacción con los mismos requisitos; responde el resultado por id con los `errores` de los rechazados | ADMIN, CARGADOR |
+| GET | `/establecimientos/duplicados` | Grupos de establecimientos activos con el mismo nombre normalizado (primero los de igual dirección), sin los descartados. Cada integrante trae dirección, oferente, contactos, categorías, ofertas activas y estado, para compararlos | ADMIN, CARGADOR |
+| POST | `/establecimientos/duplicados/descartes` | `{ clave, integrantes }`: "no son duplicados". El grupo no vuelve a aparecer mientras tenga esos mismos integrantes (`descarte_duplicado`, V12). 409 si el grupo cambió | ADMIN, CARGADOR |
+| POST | `/establecimientos/duplicados/resolucion/previa` | `{ conservarId, grupo }`. No cambia nada: por cada integrante que se daría de baja, los contactos y características que el que queda no tiene (sin repetir: mismo tipo y valor sin importar formato; teléfonos por dígitos) | ADMIN |
+| POST | `/establecimientos/duplicados/resolucion` | `{ conservarId, grupo, copiarContactos?, copiarCaracteristicas? }`: "quedarme con este". Copia al que queda lo que muestra la vista previa (si se pide) y da de baja a los demás, todo en una transacción (un publicado pasa a `OCULTO`). 409 si el grupo cambió | ADMIN |
 | GET / PUT | `/establecimientos/{id}/contactos` | Canales de contacto (PUT reemplaza) | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/referentes` | Referentes | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/distinciones` | Distinciones con año y URL | todos / ADMIN, CARGADOR |
@@ -302,11 +311,12 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Lugares
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| GET | `/lugares` | Lista (filtro `tipoLugar`, `padreId`, `localidadId`, `bbox`) | todos |
+| GET | `/lugares` | Lista (filtros `q`, `tipoLugar`, `padreId`, `localidadId`, `bbox`, `estadoGeo`). `orden=duda` pone primero lo más dudoso (NO_ENCONTRADO, APROXIMADO, PENDIENTE, AUTOMATICO). Cada fila trae `calidad` (nivel y motivos: estado, punto compartido con otros lugares, distancia al centro, dirección sin altura) | todos |
 | GET | `/lugares/{id}` | Detalle con lugares hijos | todos |
 | POST | `/lugares` | Crea (incluye coordenadas, geometría opcional y `padreId`) | ADMIN, CARGADOR |
 | PUT | `/lugares/{id}` | Modifica | ADMIN, CARGADOR |
 | DELETE | `/lugares/{id}` | Elimina si no está referenciado | ADMIN |
+| POST | `/lugares/lote/verificar` | `{ ids }` (hasta 500). Pasa a `VERIFICADO` las `AUTOMATICO` con coordenadas, cada una en su transacción; las demás se informan por id | ADMIN, CARGADOR |
 
 ### Mapa
 | Método | Ruta | Descripción | Rol |
