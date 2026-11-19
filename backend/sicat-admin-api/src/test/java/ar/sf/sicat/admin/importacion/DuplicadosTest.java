@@ -1,0 +1,131 @@
+package ar.sf.sicat.admin.importacion;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+
+import ar.sf.sicat.admin.PruebaAbm;
+
+/** Posibles duplicados: comparación, "no son duplicados" persistente y "quedarme con este". */
+class DuplicadosTest extends PruebaAbm {
+
+    private long crearConNombre(long oferente, Long lugar, String nombre) throws Exception {
+        return id(post_("/establecimientos", "{\"oferenteId\":%d,\"lugarId\":%s,\"nombre\":\"%s\"}"
+                .formatted(oferente, lugar, nombre), 201));
+    }
+
+    /** Grupo cuya clave contiene el sufijo único del nombre, o null si no aparece. */
+    private Map<String, Object> grupo(String sufijo) throws Exception {
+        List<Map<String, Object>> grupos = leer(get_("/establecimientos/duplicados", 200), "$");
+        return grupos.stream().filter(g -> ((String) g.get("clave")).contains(sufijo.toLowerCase())).findFirst().orElse(null);
+    }
+
+    private long contadorDuplicados() throws Exception {
+        return ((Number) leer(get_("/contadores", 200), "$.posiblesDuplicados")).longValue();
+    }
+
+    private String cuerpoGrupo(Map<String, Object> g, long... extra) {
+        List<Map<String, Object>> items = (List<Map<String, Object>>) g.get("establecimientos");
+        StringBuilder ids = new StringBuilder();
+        items.forEach(i -> ids.append(ids.isEmpty() ? "" : ",").append(i.get("id")));
+        for (long e : extra) {
+            ids.append(",").append(e);
+        }
+        return "{\"clave\":\"%s\",\"integrantes\":[%s]}".formatted(g.get("clave"), ids);
+    }
+
+    @Test
+    void cadaIntegranteTraeLoNecesarioParaCompararlo() throws Exception {
+        String nombre = unico("Museo Comparable");
+        String sufijo = nombre.substring(nombre.lastIndexOf(' ') + 1);
+        long oferente = crearOferente();
+        long a = crearConNombre(oferente, crearLugar(-31.63, -60.70, null), nombre);
+        crearConNombre(oferente, null, nombre.toUpperCase());
+        crearOferta(a, crearCategoria(null));
+        long instagram = id(post_("/catalogos/tipo-canal", "{\"nombre\":\"%s\"}".formatted(unico("Instagram")), 201));
+        put_("/establecimientos/" + a + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"@museo\",\"esPublico\":true}]".formatted(instagram), 200);
+
+        Map<String, Object> g = grupo(sufijo);
+        assertThat(g).isNotNull();
+        String json = get_("/establecimientos/duplicados", 200);
+        String base = "$[?(@.clave == '" + g.get("clave") + "')].establecimientos[0]";
+        assertThat((List<String>) leer(json, base + ".direccion")).containsExactly("San Martín 2000");
+        assertThat((List<Integer>) leer(json, base + ".ofertasActivas")).containsExactly(1);
+        assertThat((List<String>) leer(json, base + ".contactos[0].valor")).containsExactly("@museo");
+        assertThat((List<List<String>>) leer(json, base + ".categorias")).singleElement().asList().hasSize(1);
+        assertThat((List<String>) leer(json, base + ".oferente")).singleElement().isNotNull();
+    }
+
+    @Test
+    void noSonDuplicadosPersisteHastaQueCambiaElGrupo() throws Exception {
+        String nombre = unico("Sucursal");
+        String sufijo = nombre.substring(nombre.lastIndexOf(' ') + 1);
+        long oferente = crearOferente();
+        crearConNombre(oferente, null, nombre);
+        crearConNombre(oferente, null, nombre);
+        Map<String, Object> g = grupo(sufijo);
+        long antes = contadorDuplicados();
+
+        // integrantes que no coinciden con el grupo actual: 409
+        post_("/establecimientos/duplicados/descartes", cuerpoGrupo(g, 999_999_999L), 409);
+
+        post_("/establecimientos/duplicados/descartes", cuerpoGrupo(g), 204);
+        assertThat(grupo(sufijo)).isNull();
+        assertThat(contadorDuplicados()).isEqualTo(antes - 1);
+        // repetirlo no falla ni crea otro descarte
+        post_("/establecimientos/duplicados/descartes", cuerpoGrupo(g), 204);
+        // queda auditado
+        assertThat((List<Object>) leer(get_("/auditoria?tabla=descarte_duplicado", 200), "$.contenido")).isNotEmpty();
+
+        // entra un integrante nuevo: el grupo vuelve a aparecer
+        crearConNombre(oferente, null, nombre);
+        assertThat(grupo(sufijo)).isNotNull();
+        assertThat(contadorDuplicados()).isEqualTo(antes);
+    }
+
+    @Test
+    void quedarmeConEsteDaDeBajaALosDemasEnUnaTransaccion() throws Exception {
+        String nombre = unico("Hotel Repetido");
+        String sufijo = nombre.substring(nombre.lastIndexOf(' ') + 1);
+        long oferente = crearOferente();
+        long queda = crearConNombre(oferente, null, nombre);
+        long publicado = crearConNombre(oferente, crearLugar(-31.63, -60.70, null), nombre);
+        crearOferta(publicado, crearCategoria(null));
+        post_("/establecimientos/" + publicado + "/publicar", "", 200);
+        long tercero = crearConNombre(oferente, null, nombre);
+        Map<String, Object> g = grupo(sufijo);
+
+        // conservar uno que no es del grupo: 422
+        post_("/establecimientos/duplicados/resolucion",
+                "{\"conservarId\":%d,\"grupo\":%s}".formatted(999_999_999L, cuerpoGrupo(g)), 422);
+        // solo ADMIN, como la baja individual
+        pedir(post(API + "/establecimientos/duplicados/resolucion").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"conservarId\":%d,\"grupo\":%s}".formatted(queda, cuerpoGrupo(g))), bearerDe("CARGADOR"), 403);
+
+        String bajas = post_("/establecimientos/duplicados/resolucion",
+                "{\"conservarId\":%d,\"grupo\":%s}".formatted(queda, cuerpoGrupo(g)), 200);
+        assertThat((List<Integer>) leer(bajas, "$.bajas")).containsExactlyInAnyOrder((int) publicado, (int) tercero);
+
+        assertThat((Boolean) leer(get_("/establecimientos/" + queda, 200), "$.activo")).isTrue();
+        String delPublicado = get_("/establecimientos/" + publicado, 200);
+        assertThat((Boolean) leer(delPublicado, "$.activo")).isFalse();
+        assertThat((String) leer(delPublicado, "$.estadoPublicacion")).isEqualTo("OCULTO");
+        assertThat(grupo(sufijo)).isNull();
+    }
+
+    @Test
+    void permisosYValidaciones() throws Exception {
+        String consulta = bearerDe("CONSULTA");
+        pedir(get(API + "/establecimientos/duplicados"), consulta, 403);
+        pedir(post(API + "/establecimientos/duplicados/descartes").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"clave\":\"x\",\"integrantes\":[1,2]}"), consulta, 403);
+        post_("/establecimientos/duplicados/descartes", "{\"clave\":\"\",\"integrantes\":[1]}", 400);
+    }
+}

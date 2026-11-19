@@ -58,7 +58,8 @@ public class EstablecimientoController {
     @PreAuthorize(Roles.LECTURA)
     @Operation(summary = "Lista establecimientos",
             description = "Paginado. Filtros: q, categoria (incluye subcategorías), estado, oferenteId, localidadId, bbox, "
-                    + "ubicacion (uno o varios: VERIFICADO, AUTOMATICO, APROXIMADO, SIN_UBICACION), contactosARevisar.")
+                    + "ubicacion (uno o varios: VERIFICADO, AUTOMATICO, APROXIMADO, SIN_UBICACION), contactosARevisar, "
+                    + "listos. Cada fila trae en 'faltantes' los requisitos de publicación que no cumple.")
     public PaginaDto<EstablecimientoResumenDto> listar(
             @Parameter(description = "Texto a buscar en el nombre") @RequestParam(required = false) String q,
             @Parameter(description = "Id de categoría") @RequestParam(required = false) Long categoria,
@@ -70,9 +71,11 @@ public class EstablecimientoController {
             @RequestParam(required = false) java.util.Set<String> ubicacion,
             @Parameter(description = "Solo los que tienen un contacto de Instagram, Facebook o web sin enlace válido")
             @RequestParam(defaultValue = "false") boolean contactosARevisar,
+            @Parameter(description = "Solo BORRADOR u OCULTO que cumplen todos los requisitos para publicarse")
+            @RequestParam(defaultValue = "false") boolean listos,
             @RequestParam(defaultValue = "false") boolean incluirInactivos,
             @ParameterObject @PageableDefault(size = 20, sort = "nombre") Pageable pageable) {
-        return servicio.listar(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, contactosARevisar, incluirInactivos, pageable);
+        return servicio.listar(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, contactosARevisar, listos, incluirInactivos, pageable);
     }
 
     @GetMapping("/{id}")

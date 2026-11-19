@@ -7,10 +7,12 @@ import static ar.sf.sicat.admin.comun.Entidades.texto;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoDto;
 import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoResumenDto;
 import ar.sf.sicat.admin.establecimiento.dto.EstablecimientoSolicitud;
 import ar.sf.sicat.admin.publicacion.PublicacionService;
+import ar.sf.sicat.admin.publicacion.dto.FaltanteDto;
 import ar.sf.sicat.core.comun.Bbox;
 import ar.sf.sicat.core.comun.Geo;
 import ar.sf.sicat.core.comun.PaginaDto;
@@ -64,17 +67,24 @@ public class EstablecimientoService {
      * Filtros: q (nombre), categoria (incluye sus subcategorías; principal o adicional de una oferta activa),
      * estado, oferenteId, localidadId (la del lugar), bbox, ubicacion (uno o varios: VERIFICADO, AUTOMATICO,
      * APROXIMADO o SIN_UBICACION, que es sin lugar o con un lugar sin coordenadas), contactosARevisar
-     * (algún contacto de Instagram, Facebook o web con el que no se puede armar un buen enlace).
+     * (algún contacto de Instagram, Facebook o web con el que no se puede armar un buen enlace), listos
+     * (BORRADOR u OCULTO que cumple los requisitos de publicación).
+     * Cada fila trae los requisitos de publicación que le faltan. Consultas por página: la de la página (con
+     * oferente y lugar) y una para las ofertas de todas sus filas.
      */
     @Transactional(readOnly = true)
     public PaginaDto<EstablecimientoResumenDto> listar(String q, Long categoria, EstadoPublicacion estado,
                                                        Long oferenteId, Long localidadId, String bbox,
                                                        Set<String> ubicacion, boolean contactosARevisar,
-                                                       boolean incluirInactivos, Pageable pageable) {
-        return PaginaDto.de(establecimientos.findAll(
-                filtro(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, contactosARevisar,
-                        incluirInactivos), pageable),
-                this::resumen);
+                                                       boolean listos, boolean incluirInactivos, Pageable pageable) {
+        Page<Establecimiento> pagina = establecimientos.findAll(
+                filtro(q, categoria, estado, oferenteId, localidadId, bbox, ubicacion, contactosARevisar, listos,
+                        incluirInactivos), pageable);
+        List<Long> ids = pagina.getContent().stream().map(Establecimiento::getId).toList();
+        Map<Long, List<Oferta>> ofertasPorEstablecimiento = ids.isEmpty() ? Map.of()
+                : ofertas.conCategoriasDe(ids).stream()
+                        .collect(Collectors.groupingBy(o -> o.getEstablecimiento().getId()));
+        return PaginaDto.de(pagina, e -> resumen(e, ofertasPorEstablecimiento.getOrDefault(e.getId(), List.of())));
     }
 
     /** Valor del filtro de ubicación que agrupa a los que no tienen lugar o cuyo lugar no tiene coordenadas. */
@@ -83,9 +93,10 @@ public class EstablecimientoService {
     /** Filtro del listado; también lo usa el mapa del panel. */
     public Specification<Establecimiento> filtro(String q, Long categoria, EstadoPublicacion estado, Long oferenteId,
                                                  Long localidadId, String bbox, Set<String> ubicacion,
-                                                 boolean contactosARevisar, boolean incluirInactivos) {
+                                                 boolean contactosARevisar, boolean listos, boolean incluirInactivos) {
         Bbox caja = Bbox.parse(bbox);
         List<Long> aRevisar = contactosARevisar ? establecimientos.idsConContactosARevisar() : null;
+        List<Long> listosParaPublicar = listos ? establecimientos.idsListosParaPublicar() : null;
         List<Long> enCaja = caja == null ? null
                 : establecimientos.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
         Set<Long> ramaCategoria = categoria == null ? null : categorias.conDescendientes(categoria);
@@ -109,6 +120,9 @@ public class EstablecimientoService {
             }
             if (aRevisar != null) {
                 p.add(aRevisar.isEmpty() ? cb.disjunction() : root.get("id").in(aRevisar));
+            }
+            if (listosParaPublicar != null) {
+                p.add(listosParaPublicar.isEmpty() ? cb.disjunction() : root.get("id").in(listosParaPublicar));
             }
             if (ubicacion != null && !ubicacion.isEmpty()) {
                 var lugar = root.join("lugar", JoinType.LEFT);
@@ -189,9 +203,9 @@ public class EstablecimientoService {
         e.setDestacado(Boolean.TRUE.equals(s.destacado()));
     }
 
-    private EstablecimientoResumenDto resumen(Establecimiento e) {
+    private EstablecimientoResumenDto resumen(Establecimiento e, List<Oferta> ofertasDelEstablecimiento) {
         Lugar l = e.getLugar();
-        List<String> nombresCategorias = ofertas.findByEstablecimientoIdOrderById(e.getId()).stream()
+        List<String> nombresCategorias = ofertasDelEstablecimiento.stream()
                 .filter(o -> Boolean.TRUE.equals(o.getActivo()))
                 .flatMap(o -> Stream.concat(Stream.of(o.getCategoria()), o.getCategoriasAdicionales().stream()))
                 .map(Categoria::getNombre)
@@ -203,7 +217,9 @@ public class EstablecimientoService {
                 l == null ? null : Geo.coordenadas(l.getPunto()),
                 l == null ? null : l.getEstadoGeo(),
                 e.getEstadoPublicacion(), Boolean.TRUE.equals(e.getDestacado()), Boolean.TRUE.equals(e.getActivo()),
-                nombresCategorias);
+                nombresCategorias,
+                publicacion.evaluar(e, ofertasDelEstablecimiento).stream()
+                        .map(f -> FaltanteDto.de(f.requisito())).toList());
     }
 
     private EstablecimientoDto dto(Establecimiento e) {

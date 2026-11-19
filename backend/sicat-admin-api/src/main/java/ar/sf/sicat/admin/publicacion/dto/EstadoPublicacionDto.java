@@ -9,5 +9,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record EstadoPublicacionDto(
         EstadoPublicacion estado,
         boolean puedePublicarse,
-        @Schema(description = "Vacía si cumple todos los requisitos") List<String> faltantes) {
+        @Schema(description = "Vacía si cumple todos los requisitos") List<String> faltantes,
+        @Schema(description = "Lo mismo que 'faltantes', con el código de cada requisito (para enlazar a dónde se arregla)")
+        List<Requisito> requisitos) {
+
+    /** Requisito incumplido: código, texto corto y mensaje completo. */
+    public record Requisito(ar.sf.sicat.admin.publicacion.Requisito codigo, String texto, String mensaje) {
+    }
 }

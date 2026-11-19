@@ -2,6 +2,7 @@ package ar.sf.sicat.admin.establecimiento.dto;
 
 import java.util.List;
 
+import ar.sf.sicat.admin.publicacion.dto.FaltanteDto;
 import ar.sf.sicat.core.comun.Coordenadas;
 import ar.sf.sicat.core.dominio.establecimiento.EstadoPublicacion;
 
@@ -18,5 +19,7 @@ public record EstablecimientoResumenDto(
         EstadoPublicacion estadoPublicacion,
         boolean destacado,
         boolean activo,
-        List<String> categorias) {
+        List<String> categorias,
+        @io.swagger.v3.oas.annotations.media.Schema(description = "Requisitos de publicación que no cumple (vacío si se puede publicar)")
+        List<FaltanteDto> faltantes) {
 }

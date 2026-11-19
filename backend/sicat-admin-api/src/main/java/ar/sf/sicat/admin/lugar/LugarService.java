@@ -5,8 +5,11 @@ import static ar.sf.sicat.admin.comun.Entidades.buscarOpcional;
 import static ar.sf.sicat.admin.comun.Entidades.texto;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -50,9 +53,17 @@ public class LugarService {
         this.publicacion = publicacion;
     }
 
+    /** Orden de la cola de revisión: primero lo más dudoso. */
+    public static final String ORDEN_DUDA = "duda";
+
+    /**
+     * Con {@code orden = duda} se ordena NO_ENCONTRADO, APROXIMADO, PENDIENTE, AUTOMATICO y el resto, y por nombre
+     * dentro de cada estado (el orden de {@code pageable} se ignora). Cada fila trae su señal de calidad.
+     */
     @Transactional(readOnly = true)
     public PaginaDto<LugarDto> listar(String q, Long tipoLugarId, Long padreId, Long localidadId, String bbox,
-                                      java.util.Set<String> estadosGeo, Pageable pageable) {
+                                      java.util.Set<String> estadosGeo, String orden, Pageable pageable) {
+        boolean porDuda = ORDEN_DUDA.equals(orden);
         Bbox caja = Bbox.parse(bbox);
         List<Long> enCaja = caja == null ? null
                 : lugares.idsEnBbox(caja.minLng(), caja.minLat(), caja.maxLng(), caja.maxLat());
@@ -83,14 +94,39 @@ public class LugarService {
             if (estadosGeo != null && !estadosGeo.isEmpty()) {
                 p.add(root.get("estadoGeo").in(estadosGeo));
             }
+            // La consulta de conteo (resultado Long) no lleva orden.
+            if (porDuda && !Long.class.equals(query.getResultType())) {
+                var estado = root.get("estadoGeo");
+                query.orderBy(cb.asc(cb.selectCase()
+                                .when(cb.equal(estado, "NO_ENCONTRADO"), 0)
+                                .when(cb.equal(estado, "APROXIMADO"), 1)
+                                .when(cb.equal(estado, "PENDIENTE"), 2)
+                                .when(cb.equal(estado, "AUTOMATICO"), 3)
+                                .otherwise(4)),
+                        cb.asc(cb.lower(root.get("nombre"))), cb.asc(root.get("id")));
+            }
             return cb.and(p.toArray(Predicate[]::new));
         };
-        return PaginaDto.de(lugares.findAll(spec, pageable), l -> dto(l, false));
+        Pageable pagina = porDuda ? PageRequest.of(pageable.getPageNumber(), pageable.getPageSize()) : pageable;
+        var resultado = lugares.findAll(spec, pagina);
+        Map<Long, Long> compartidos = compartidos(resultado.getContent());
+        return PaginaDto.de(resultado, l -> dto(l, false, compartidos.getOrDefault(l.getId(), 0L)));
+    }
+
+    /** Una consulta para toda la página: cuántos otros lugares comparten el punto de cada uno. */
+    private Map<Long, Long> compartidos(List<Lugar> pagina) {
+        List<Long> ids = pagina.stream().filter(l -> l.getPunto() != null).map(Lugar::getId).toList();
+        Map<Long, Long> r = new HashMap<>();
+        if (!ids.isEmpty()) {
+            lugares.puntosCompartidos(ids).forEach(f -> r.put(((Number) f[0]).longValue(), ((Number) f[1]).longValue()));
+        }
+        return r;
     }
 
     @Transactional(readOnly = true)
     public LugarDto detalle(Long id) {
-        return dto(buscar(lugares, id, "Lugar"), true);
+        Lugar l = buscar(lugares, id, "Lugar");
+        return dto(l, true, compartidos(List.of(l)).getOrDefault(id, 0L));
     }
 
     @Transactional
@@ -146,6 +182,11 @@ public class LugarService {
     }
 
     LugarDto dto(Lugar l, boolean conHijos) {
+        return dto(l, conHijos, null);
+    }
+
+    /** {@code compartidos} null: sin señal de calidad (respuestas de alta y modificación). */
+    LugarDto dto(Lugar l, boolean conHijos, Long compartidos) {
         List<LugarDto.LugarRef> hijos = !conHijos || l.getId() == null ? null
                 : lugares.findByLugarPadreIdOrderByNombre(l.getId()).stream()
                         .map(h -> new LugarDto.LugarRef(h.getId(), h.getNombre())).toList();
@@ -162,6 +203,7 @@ public class LugarService {
                         .sorted(java.util.Comparator.comparing(e -> e.getNombre(), String.CASE_INSENSITIVE_ORDER))
                         .map(e -> new LugarDto.EstablecimientoRef(e.getId(), e.getNombre(), e.getEstadoPublicacion(),
                                 Boolean.TRUE.equals(e.getActivo())))
-                        .toList());
+                        .toList(),
+                compartidos == null ? null : CalidadGeo.de(l, Geo.coordenadas(l.getPunto()), compartidos));
     }
 }
