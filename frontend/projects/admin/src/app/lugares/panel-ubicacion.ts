@@ -66,6 +66,9 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
             }
             <button mat-button type="button" (click)="saltar.emit()">Saltar</button>
             <button mat-button type="button" (click)="editar.emit(l)"><mat-icon>edit</mat-icon> Editar datos</button>
+            @if (eliminable() && !l.establecimientos?.length) {
+              <button mat-button type="button" class="eliminar" (click)="eliminar.emit(l)"><mat-icon>delete</mat-icon> Eliminar lugar</button>
+            }
           </div>
         }
       } @else {
@@ -90,6 +93,8 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
     .estado-pin { margin: 0; min-height: 20px; font-size: 13px; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
     .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
     .acciones button { min-height: 44px; }
+    /* Separada de las acciones de revisión: es la única que no se deshace. */
+    .acciones .eliminar { margin-left: auto; color: var(--sicat-error); }
     kbd { margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / 18%); font-family: inherit; font-size: 11px; font-weight: 600; }
   `,
 })
@@ -100,6 +105,9 @@ export class PanelUbicacion {
 
   readonly lugar = input<Lugar | null>(null);
   readonly editable = input(true);
+  /** Muestra "Eliminar lugar" (solo administradores; y solo si ningún establecimiento usa el lugar). */
+  readonly eliminable = input(false);
+  readonly eliminar = output<Lugar>();
   /** Se guardó como VERIFICADO (con el pin donde quedó). */
   readonly confirmado = output<Lugar>();
   readonly saltar = output<void>();

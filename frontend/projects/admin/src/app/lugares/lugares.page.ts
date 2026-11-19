@@ -207,7 +207,8 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
       @if (enRevision()) {
         <div class="tarjeta panel-mapa">
           <app-panel-ubicacion [lugar]="seleccionado()" [editable]="puedeEditar" (confirmado)="alConfirmar($event)"
-                               (saltar)="saltarActual()" (editar)="editar($event)" />
+                               (saltar)="saltarActual()" (editar)="editar($event)"
+                               [eliminable]="esAdmin" (eliminar)="eliminar($event)" />
         </div>
       }
       </div>
@@ -439,7 +440,7 @@ export class LugaresPage {
       .afterClosed()
       .subscribe((r?: LugarGuardado) => {
         if (r?.pasarAlSiguiente) {
-          this.pasarAlSiguiente(l, !!r.saltado);
+          this.pasarAlSiguiente(l, r.saltado ? 'saltado' : 'confirmado');
         } else if (r) {
           this.recargar.next();
         }
@@ -447,9 +448,17 @@ export class LugaresPage {
   }
 
   /** Recarga la cola (el confirmado puede salir de ella) y abre el que seguía; si era el último de la página, pasa a la próxima. */
-  private pasarAlSiguiente(actual: Lugar, saltado = false, abrir: (l: Lugar) => void = (l) => this.editar(l)): void {
+  private pasarAlSiguiente(
+    actual: Lugar,
+    que: 'confirmado' | 'saltado' | 'eliminado' = 'confirmado',
+    abrir: (l: Lugar) => void = (l) => this.editar(l),
+  ): void {
     const anterior = this.pagina()?.contenido ?? [];
-    const hecho = saltado ? `${actual.nombre} sin cambios` : `Ubicación de ${actual.nombre} confirmada`;
+    const hecho = {
+      confirmado: `Ubicación de ${actual.nombre} confirmada`,
+      saltado: `${actual.nombre} sin cambios`,
+      eliminado: `${actual.nombre} eliminado`,
+    }[que];
     this.alCargar = (nueva) => {
       const siguiente = elegirSiguiente(anterior, nueva.contenido, actual.id);
       if (siguiente) {
@@ -501,13 +510,13 @@ export class LugaresPage {
 
   /** Confirmada desde el panel: sale de la cola y se elige la siguiente (o la primera de la página que sigue). */
   protected alConfirmar(l: Lugar): void {
-    this.pasarAlSiguiente(l, false, (s) => this.seleccionar(s, true));
+    this.pasarAlSiguiente(l, 'confirmado', (s) => this.seleccionar(s, true));
   }
 
   protected saltarActual(): void {
     const l = this.seleccionado();
     if (l) {
-      this.pasarAlSiguiente(l, true, (s) => this.seleccionar(s, true));
+      this.pasarAlSiguiente(l, 'saltado', (s) => this.seleccionar(s, true));
     }
   }
 
@@ -526,6 +535,12 @@ export class LugaresPage {
       if (ok) {
         this.api.delete(`/lugares/${l.id}`).subscribe({
           next: () => {
+            if (this.enRevision() && this.seleccionado()?.id === l.id) {
+              // Desde el panel del mapa: el lugar ya no existe, se sigue con el próximo de la cola.
+              this.seleccionado.set(null);
+              this.pasarAlSiguiente(l, 'eliminado', (s) => this.seleccionar(s, true));
+              return;
+            }
             this.avisos.ok('Lugar eliminado');
             this.recargar.next();
           },
