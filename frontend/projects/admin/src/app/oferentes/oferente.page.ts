@@ -38,20 +38,27 @@ import { OferenteDialog } from './oferente-dialog';
             }
           }
         </div>
-        <p class="suave sub">{{ o.tipoOferente }}</p>
+        @let cantidad = o.establecimientos?.length ?? 0;
+        <p class="sub">
+          <span>{{ o.tipoOferente || 'Sin tipo' }}</span>
+          <span class="suave">{{ cantidad }} {{ cantidad === 1 ? 'establecimiento' : 'establecimientos' }}</span>
+        </p>
         <div class="tarjeta">
           <mat-tab-group #pestanias mat-stretch-tabs="false" animationDuration="0ms" preserveContent>
-            <mat-tab [label]="'Establecimientos (' + (o.establecimientos?.length ?? 0) + ')'">
-              <mat-nav-list>
-                @for (e of o.establecimientos; track e.id) {
-                  <a mat-list-item [routerLink]="['/establecimientos', e.id]">
-                    <span matListItemTitle>{{ e.nombre }}</span>
-                    <span matListItemLine><app-estado [valor]="e.estadoPublicacion" /> @if (!e.activo) { <app-estado valor="inactivo" /> }</span>
-                  </a>
-                } @empty {
-                  <p class="vacio">No tiene establecimientos.</p>
-                }
-              </mat-nav-list>
+            <mat-tab [label]="'Establecimientos (' + cantidad + ')'">
+              @if (cantidad) {
+                <mat-nav-list class="lista" aria-label="Establecimientos del oferente">
+                  @for (e of o.establecimientos; track e.id) {
+                    <a mat-list-item [routerLink]="['/establecimientos', e.id]" [class.inactivo]="!e.activo">
+                      <span matListItemTitle>{{ e.nombre }}</span>
+                      <span matListItemLine class="estados"><app-estado [valor]="e.estadoPublicacion" /> @if (!e.activo) { <app-estado valor="inactivo" /> }</span>
+                      <mat-icon matListItemMeta aria-hidden="true">chevron_right</mat-icon>
+                    </a>
+                  }
+                </mat-nav-list>
+              } @else {
+                <p class="vacio">No tiene establecimientos. Se le asignan desde la pestaña Datos de cada establecimiento.</p>
+              }
             </mat-tab>
             <mat-tab [label]="marca('Contactos')">
               <ng-template matTabContent>
@@ -70,7 +77,15 @@ import { OferenteDialog } from './oferente-dialog';
       }
     </section>
   `,
-  styles: `h1 { display: flex; gap: 8px; align-items: center; } .sub { margin: -8px 0 0; }`,
+  styles: `
+    h1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .sub { display: flex; gap: 4px 16px; flex-wrap: wrap; margin: -8px 0 0 52px; font-size: 14px; }
+    .lista { padding: 0 8px; }
+    .lista a + a { border-top: 1px solid var(--sicat-borde); border-radius: 0; }
+    .lista .inactivo [matListItemTitle] { color: var(--sicat-texto-suave); }
+    .estados { display: flex; gap: 6px; padding-top: 2px; }
+    @media (max-width: 720px) { .sub { margin-left: 0; } }
+  `,
 })
 export class OferentePage {
   private readonly api = inject(Api);

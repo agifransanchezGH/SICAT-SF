@@ -13,68 +13,79 @@ import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { CanalContacto } from '../core/modelos';
 import { ayudaDe, enlaceDe, problemaDe } from 'shared';
-import { avisarSiHayCambios } from '../core/cambios-pendientes';
+
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Canales de contacto de un establecimiento o de un oferente. Se guarda la lista completa (PUT). */
 @Component({
   selector: 'app-contactos-editor',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatIconModule],
   template: `
-    <div class="editor">
+    <div class="lista-editable" style="--columnas: minmax(130px, 170px) minmax(200px, 2fr) minmax(140px, 1fr) 84px 88px">
+      <p class="lista-ayuda">Los canales marcados como "Público" se muestran en el sitio; el resto queda para el equipo. "Uso" dice para qué sirve cada canal: reservas, administración…</p>
+      @if (filas.length) {
+        <div class="te-cabecera" aria-hidden="true">
+          <span>Tipo</span><span>Valor</span><span>Uso</span><span>Público</span><span></span>
+        </div>
+      }
       @for (fila of filas.controls; track fila; let i = $index) {
-        <div class="fila" [formGroup]="fila">
-          <mat-form-field class="tipo">
-            <mat-label>Tipo</mat-label>
-            <mat-select formControlName="tipoCanalId">
-              @for (t of tipos(); track t.id) { <mat-option [value]="t.id">{{ t.nombre }}</mat-option> }
-            </mat-select>
-          </mat-form-field>
+        <div class="te-fila" [formGroup]="fila" role="group" [attr.aria-label]="'Contacto ' + (i + 1)">
+          <div data-etiqueta="Tipo">
+            <mat-form-field>
+              <mat-select formControlName="tipoCanalId" [aria-label]="'Tipo del contacto ' + (i + 1)">
+                @for (t of tipos(); track t.id) { <mat-option [value]="t.id">{{ t.nombre }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+          </div>
           @let tipo = nombreTipo(fila.controls.tipoCanalId.value);
           @let valor = fila.controls.valor.value;
           @let problema = problemaDe(tipo, valor);
           @let enlace = valor.trim() ? enlaceDe(tipo, valor) : null;
-          <mat-form-field class="valor" subscriptSizing="dynamic">
-            <mat-label>Valor</mat-label>
-            <input matInput formControlName="valor" />
-            @if (enlace?.href) {
-              <a matIconSuffix mat-icon-button [href]="enlace!.href" target="_blank" rel="noopener"
-                 [attr.aria-label]="'Probar enlace: ' + enlace!.href" [title]="'Probar enlace: ' + enlace!.href">
-                <mat-icon>open_in_new</mat-icon>
-              </a>
+          <div data-etiqueta="Valor">
+            <mat-form-field>
+              <input matInput formControlName="valor" [attr.aria-label]="'Valor del contacto ' + (i + 1)" />
+              @if (enlace?.href) {
+                <a matIconSuffix mat-icon-button [href]="enlace!.href" target="_blank" rel="noopener"
+                   [attr.aria-label]="'Probar enlace: ' + enlace!.href" [title]="'Probar enlace: ' + enlace!.href">
+                  <mat-icon>open_in_new</mat-icon>
+                </a>
+              }
+              @if (problema) {
+                <mat-hint class="aviso">{{ problema }}</mat-hint>
+              } @else if (ayudaDe(tipo); as ayuda) {
+                <mat-hint>{{ ayuda }}</mat-hint>
+              }
+            </mat-form-field>
+          </div>
+          <div data-etiqueta="Uso">
+            <mat-form-field>
+              <input matInput formControlName="uso" [attr.aria-label]="'Uso del contacto ' + (i + 1)" />
+            </mat-form-field>
+          </div>
+          <div class="te-control" data-etiqueta="Público">
+            <mat-checkbox formControlName="esPublico" [aria-label]="'Contacto ' + (i + 1) + ' público'"><span class="solo-angosto">Público</span></mat-checkbox>
+          </div>
+          <div class="te-control te-acciones">
+            @if (editable()) {
+              <button mat-icon-button type="button" [attr.aria-label]="'Subir contacto ' + (i + 1)" [disabled]="i === 0" (click)="mover(i, -1)"><mat-icon>arrow_upward</mat-icon></button>
+              <button mat-icon-button type="button" [attr.aria-label]="'Quitar contacto ' + (i + 1)" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
             }
-            @if (problema) {
-              <mat-hint class="aviso">{{ problema }}</mat-hint>
-            } @else if (ayudaDe(tipo); as ayuda) {
-              <mat-hint>{{ ayuda }}</mat-hint>
-            }
-          </mat-form-field>
-          <mat-form-field class="uso">
-            <mat-label>Uso</mat-label>
-            <input matInput formControlName="uso" placeholder="Reservas, administración…" />
-          </mat-form-field>
-          <mat-checkbox formControlName="esPublico">Público</mat-checkbox>
-          @if (editable()) {
-            <div class="mover">
-              <button mat-icon-button type="button" aria-label="Subir" [disabled]="i === 0" (click)="mover(i, -1)"><mat-icon>arrow_upward</mat-icon></button>
-              <button mat-icon-button type="button" aria-label="Quitar" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
-            </div>
-          }
+          </div>
         </div>
       } @empty {
-        <p class="vacio">Sin canales de contacto.</p>
+        <p class="te-vacio">Sin canales de contacto.</p>
       }
       @if (editable()) {
-        <div class="acciones-editor">
-          <button mat-stroked-button type="button" (click)="agregar()"><mat-icon>add</mat-icon> Agregar canal</button>
-          <span class="espacio"></span>
+        <div class="te-pie">
+          <button mat-button type="button" class="te-agregar" (click)="agregar()"><mat-icon>add</mat-icon> Agregar canal</button>
+          @if (filas.dirty) { <span class="suave cambios" role="status">Hay cambios sin guardar</span> }
           <button mat-flat-button type="button" (click)="guardar()" [disabled]="filas.invalid || filas.pristine || guardando()">Guardar contactos</button>
         </div>
       }
-      <p class="suave nota">Solo los marcados como "Público" se muestran en el sitio.</p>
     </div>
   `,
   styleUrl: './editores.scss',
-  styles: `.tipo { width: 170px; } .valor { flex: 2 1 220px; } .uso { flex: 1 1 160px; } .aviso { color: #b26a00; }`,
+  styles: `.cambios { font-size: 13px; }`,
 })
 export class ContactosEditor implements OnInit {
   private readonly avisoDeCambios = avisarSiHayCambios('Contactos', () => this.filas.dirty);

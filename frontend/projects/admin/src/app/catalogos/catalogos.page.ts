@@ -29,42 +29,66 @@ import { CatalogoItem } from '../core/modelos';
     <section class="pagina">
       <div class="encabezado"><h1>Catálogos</h1></div>
       <div class="dos-columnas">
-        <mat-nav-list class="tarjeta lista">
-          @for (c of catalogos; track c.nombre) {
-            <a mat-list-item [activated]="c.nombre === actual()" (click)="elegir(c.nombre)">{{ c.titulo }}</a>
-          }
-        </mat-nav-list>
+        <nav class="tarjeta lista" aria-label="Catálogos">
+          <mat-nav-list>
+            @for (c of catalogos; track c.nombre) {
+              <a mat-list-item [activated]="c.nombre === actual()" [attr.aria-current]="c.nombre === actual() ? 'page' : null"
+                 (click)="elegir(c.nombre)">{{ c.titulo }}</a>
+            }
+          </mat-nav-list>
+        </nav>
 
         <div class="tarjeta">
           <div class="cabecera">
-            <h2>{{ titulo() }}</h2>
+            <div class="titulo">
+              <h2>{{ titulo() }}</h2>
+              <span class="cantidad">{{ items().length }} {{ items().length === 1 ? 'ítem' : 'ítems' }}</span>
+            </div>
             @if (esAdmin && actual() === 'caracteristica') {
               <a mat-stroked-button routerLink="/catalogos/caracteristica/limpieza"><mat-icon>cleaning_services</mat-icon> Limpiar duplicados</a>
             }
             <mat-checkbox [(ngModel)]="incluirInactivos" (change)="cargar()">Ver dados de baja</mat-checkbox>
           </div>
           @if (esAdmin) {
-            <form class="nuevo" [formGroup]="form" (ngSubmit)="guardar()">
-              <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="nombre" /></mat-form-field>
-              @if (actual() === 'localidad') {
-                <mat-form-field><mat-label>Provincia</mat-label><input matInput formControlName="provincia" /></mat-form-field>
-              }
-              @if (actual() === 'distincion') {
-                <mat-form-field><mat-label>Organismo otorgante</mat-label><input matInput formControlName="organismoOtorgante" /></mat-form-field>
-              }
+            <form class="nuevo" [class.editando]="editando()" [formGroup]="form" (ngSubmit)="guardar()" aria-labelledby="form-catalogo">
+              <p class="modo" id="form-catalogo">
+                @if (editando(); as e) {
+                  <mat-icon aria-hidden="true">edit</mat-icon> Editando «{{ e.nombre }}»
+                } @else {
+                  Agregar a {{ titulo().toLowerCase() }}
+                }
+              </p>
+              <div class="campos-nuevo">
+                <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="nombre" /></mat-form-field>
+                @if (actual() === 'localidad') {
+                  <mat-form-field><mat-label>Provincia</mat-label><input matInput formControlName="provincia" /></mat-form-field>
+                }
+                @if (actual() === 'distincion') {
+                  <mat-form-field><mat-label>Organismo otorgante</mat-label><input matInput formControlName="organismoOtorgante" /></mat-form-field>
+                }
+                @if (actual() === 'caracteristica') {
+                  <mat-form-field><mat-label>Grupo</mat-label><input matInput formControlName="grupo" placeholder="Servicios, Accesibilidad…" /></mat-form-field>
+                }
+                <div class="botones">
+                  @if (editando()) { <button mat-button type="button" (click)="cancelar()">Cancelar</button> }
+                  <button mat-flat-button type="submit" [disabled]="form.invalid">
+                    @if (!editando()) { <mat-icon>add</mat-icon> }
+                    {{ editando() ? 'Guardar cambios' : 'Agregar' }}
+                  </button>
+                </div>
+              </div>
               @if (actual() === 'caracteristica') {
-                <mat-form-field><mat-label>Grupo</mat-label><input matInput formControlName="grupo" placeholder="Servicios, Accesibilidad…" /></mat-form-field>
-                <mat-checkbox formControlName="admiteCantidad">Admite cantidad</mat-checkbox>
-                <mat-checkbox formControlName="esPublica">Se muestra en el sitio</mat-checkbox>
+                <div class="opciones">
+                  <mat-checkbox formControlName="admiteCantidad">Admite cantidad</mat-checkbox>
+                  <mat-checkbox formControlName="esPublica">Se muestra en el sitio</mat-checkbox>
+                </div>
               }
-              <button mat-flat-button type="submit" [disabled]="form.invalid">{{ editando() ? 'Guardar' : 'Agregar' }}</button>
-              @if (editando()) { <button mat-button type="button" (click)="cancelar()">Cancelar</button> }
             </form>
           }
           <table mat-table [dataSource]="items()" class="tabla">
             <ng-container matColumnDef="nombre">
               <th mat-header-cell *matHeaderCellDef>Nombre</th>
-              <td mat-cell *matCellDef="let i">{{ i.nombre }} @if (i.activo === false) { <app-estado valor="inactivo" /> }</td>
+              <td mat-cell *matCellDef="let i" [class.inactivo]="i.activo === false">{{ i.nombre }} @if (i.activo === false) { <app-estado valor="inactivo" /> }</td>
             </ng-container>
             <ng-container matColumnDef="extra">
               <th mat-header-cell *matHeaderCellDef>{{ extraTitulo() }}</th>
@@ -72,34 +96,45 @@ import { CatalogoItem } from '../core/modelos';
                 @if (i.esPublica === false) { <span class="estado AUTOMATICO">Interna</span> }</td>
             </ng-container>
             <ng-container matColumnDef="acciones">
-              <th mat-header-cell *matHeaderCellDef></th>
+              <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Acciones</span></th>
               <td mat-cell *matCellDef="let i" class="acciones-celda">
                 @if (esAdmin) {
-                  <button mat-icon-button matTooltip="Editar" (click)="editar(i)"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button matTooltip="Editar" [attr.aria-label]="'Editar ' + i.nombre" (click)="editar(i)"><mat-icon>edit</mat-icon></button>
                   @if (i.activo === false) {
-                    <button mat-icon-button matTooltip="Reactivar" (click)="reactivar(i)"><mat-icon>restore</mat-icon></button>
+                    <button mat-icon-button matTooltip="Reactivar" [attr.aria-label]="'Reactivar ' + i.nombre" (click)="reactivar(i)"><mat-icon>restore</mat-icon></button>
                   } @else {
-                    <button mat-icon-button matTooltip="Dar de baja" (click)="darDeBaja(i)"><mat-icon>delete</mat-icon></button>
+                    <button mat-icon-button matTooltip="Dar de baja" [attr.aria-label]="'Dar de baja ' + i.nombre" (click)="darDeBaja(i)"><mat-icon>delete</mat-icon></button>
                   }
                 }
               </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="columnas"></tr>
-            <tr mat-row *matRowDef="let i; columns: columnas"></tr>
+            <tr mat-row *matRowDef="let i; columns: columnas" [class.en-edicion]="editando()?.id === i.id"></tr>
           </table>
+          @if (!items().length) { <p class="vacio">Este catálogo está vacío.</p> }
         </div>
       </div>
     </section>
   `,
   styles: `
-    .dos-columnas { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
-    .lista { padding: 4px 0; }
-    .cabecera { display: flex; align-items: center; gap: 12px; padding: 12px 16px 0; }
-    .cabecera h2 { margin: 0 auto 0 0; font: var(--mat-sys-title-large); }
-    .nuevo { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; padding: 12px 16px; }
-    .nuevo mat-form-field { flex: 1 1 200px; }
+    .dos-columnas { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
+    .lista { padding: 4px 0; position: sticky; top: 16px; }
+    .cabecera { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; padding: 16px 20px 12px; }
+    .titulo { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+    .titulo h2 { margin: 0; font: 600 20px/1.2 Archivo, system-ui, sans-serif; font-stretch: var(--sicat-ancho-nombre); }
+    .cantidad { font-size: 13px; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
+    .nuevo { padding: 12px 20px 4px; border-top: 1px solid var(--sicat-borde); border-bottom: 1px solid var(--sicat-borde); background: var(--mat-sys-surface-container-lowest); }
+    .nuevo.editando { background: var(--mat-sys-surface-container-low); }
+    .modo { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-weight: 600; font-size: 14px; }
+    .modo mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--sicat-rio); }
+    .campos-nuevo { display: flex; gap: 8px 12px; align-items: flex-start; flex-wrap: wrap; }
+    .campos-nuevo mat-form-field { flex: 1 1 220px; }
+    .botones { display: flex; gap: 8px; align-items: center; min-height: 52px; margin-left: auto; }
+    .opciones { display: flex; gap: 4px 24px; flex-wrap: wrap; margin: -4px 0 8px -8px; }
     .acciones-celda { white-space: nowrap; text-align: right; }
-    @media (max-width: 800px) { .dos-columnas { grid-template-columns: 1fr; } }
+    td.inactivo { color: var(--sicat-texto-suave); }
+    tr.en-edicion td { background: var(--mat-sys-surface-container-low); }
+    @media (max-width: 800px) { .dos-columnas { grid-template-columns: 1fr; } .lista { position: static; } }
   `,
 })
 export class CatalogosPage {

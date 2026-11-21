@@ -19,39 +19,54 @@ import { Oferta } from '../core/modelos';
   selector: 'app-ofertas-lista',
   imports: [FormsModule, RouterLink, MatListModule, MatIconModule, MatButtonModule, MatSelectModule, MatFormFieldModule, MatCheckboxModule, EstadoChip],
   template: `
-    <div class="panel">
-      <mat-checkbox [(ngModel)]="incluirInactivas" (change)="cargar()">Mostrar dadas de baja</mat-checkbox>
-      <mat-nav-list>
-        @for (o of ofertas(); track o.id) {
-          <a mat-list-item [routerLink]="['/ofertas', o.id]">
-            <mat-icon matListItemIcon>category</mat-icon>
-            <span matListItemTitle>{{ o.categoria }} @if (!o.activo) { <app-estado valor="inactivo" /> }</span>
-            <span matListItemLine class="suave">
-              {{ resumen(o) }}
-            </span>
-          </a>
-        } @empty {
-          <p class="vacio">Todavía no tiene ofertas. Para publicarlo necesita al menos una activa.</p>
+    <div class="ofertas">
+      <div class="barra">
+        @if (editable()) {
+          <div class="nueva">
+            <mat-form-field class="categoria">
+              <mat-label>Categoría de la nueva oferta</mat-label>
+              <mat-select [(ngModel)]="categoriaNueva">
+                @for (c of catalogos.categorias(); track c.id) { <mat-option [value]="c.id">{{ c.nombre }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            <button mat-flat-button [disabled]="!categoriaNueva || creando()" (click)="crear()"><mat-icon>add</mat-icon> Agregar oferta</button>
+          </div>
         }
-      </mat-nav-list>
+        <mat-checkbox class="inactivas" [(ngModel)]="incluirInactivas" (change)="cargar()">Mostrar dadas de baja</mat-checkbox>
+      </div>
+      <p class="ayuda">Cada oferta es algo que el establecimiento ofrece, con su categoría. Para publicarlo necesita al menos una activa.</p>
 
-      @if (editable()) {
-        <div class="nueva">
-          <mat-form-field class="categoria">
-            <mat-label>Categoría de la nueva oferta</mat-label>
-            <mat-select [(ngModel)]="categoriaNueva">
-              @for (c of catalogos.categorias(); track c.id) { <mat-option [value]="c.id">{{ c.nombre }}</mat-option> }
-            </mat-select>
-          </mat-form-field>
-          <button mat-flat-button [disabled]="!categoriaNueva || creando()" (click)="crear()"><mat-icon>add</mat-icon> Agregar oferta</button>
-        </div>
+      @if (ofertas().length) {
+        <mat-nav-list class="lista" aria-label="Ofertas">
+          @for (o of ofertas(); track o.id) {
+            <a mat-list-item [routerLink]="['/ofertas', o.id]" [class.inactiva]="!o.activo">
+              <mat-icon matListItemIcon aria-hidden="true">sell</mat-icon>
+              <span matListItemTitle>{{ o.categoria }} @if (!o.activo) { <app-estado valor="inactivo" /> }</span>
+              <span matListItemLine class="suave">{{ resumen(o) }}</span>
+              <mat-icon matListItemMeta aria-hidden="true">chevron_right</mat-icon>
+            </a>
+          }
+        </mat-nav-list>
+      } @else {
+        <p class="vacio">
+          Todavía no tiene ofertas.
+          @if (editable()) { Elegí una categoría arriba y tocá "Agregar oferta". }
+        </p>
       }
     </div>
   `,
   styles: `
-    .panel { padding: 16px; }
-    .nueva { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
-    .categoria { flex: 1 1 320px; max-width: 520px; }
+    .ofertas { padding: 16px 24px 20px; }
+    .barra { display: flex; gap: 8px 16px; align-items: flex-start; flex-wrap: wrap; }
+    .nueva { display: flex; gap: 8px 12px; align-items: flex-start; flex-wrap: wrap; flex: 1 1 420px; }
+    .nueva button { min-height: 52px; }
+    .categoria { flex: 1 1 280px; max-width: 480px; }
+    .inactivas { margin-left: auto; min-height: 52px; display: flex; align-items: center; }
+    .ayuda { margin: 4px 0 12px; font-size: 13px; color: var(--sicat-texto-suave); }
+    .lista { padding: 0; border-top: 1px solid var(--sicat-borde); }
+    .lista a { border-bottom: 1px solid var(--sicat-borde); border-radius: 0; }
+    .lista .inactiva [matListItemTitle] { color: var(--sicat-texto-suave); }
+    .vacio { border-top: 1px solid var(--sicat-borde); }
   `,
 })
 export class OfertasLista implements OnInit {

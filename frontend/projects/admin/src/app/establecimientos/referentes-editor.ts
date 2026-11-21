@@ -9,39 +9,58 @@ import { MatInputModule } from '@angular/material/input';
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Referente } from '../core/modelos';
-import { avisarSiHayCambios } from '../core/cambios-pendientes';
+
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Personas de contacto internas del establecimiento (no salen al sitio público). */
 @Component({
   selector: 'app-referentes-editor',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatButtonModule, MatIconModule],
   template: `
-    <div class="editor">
+    <div class="lista-editable" style="--columnas: minmax(150px, 1.3fr) minmax(120px, 1fr) minmax(130px, 1fr) minmax(170px, 1.3fr) 76px 48px">
+      <p class="lista-ayuda">Personas de contacto para la Dirección de Turismo. Son de uso interno: no se publican.</p>
+      @if (filas.length) {
+        <div class="te-cabecera" aria-hidden="true">
+          <span>Nombre</span><span>Cargo</span><span>Teléfono</span><span>Correo</span><span>Activo</span><span></span>
+        </div>
+      }
       @for (fila of filas.controls; track fila; let i = $index) {
-        <div class="fila" [formGroup]="fila">
-          <mat-form-field><mat-label>Nombre</mat-label><input matInput formControlName="nombre" /></mat-form-field>
-          <mat-form-field><mat-label>Cargo</mat-label><input matInput formControlName="cargo" /></mat-form-field>
-          <mat-form-field><mat-label>Teléfono</mat-label><input matInput formControlName="telefono" /></mat-form-field>
-          <mat-form-field><mat-label>Correo</mat-label><input matInput type="email" formControlName="correo" /></mat-form-field>
-          <mat-checkbox formControlName="activo">Activo</mat-checkbox>
-          @if (editable()) {
-            <button mat-icon-button type="button" aria-label="Quitar" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
-          }
+        <div class="te-fila" [formGroup]="fila" role="group" [attr.aria-label]="'Referente ' + (i + 1)">
+          <div data-etiqueta="Nombre">
+            <mat-form-field><input matInput formControlName="nombre" [attr.aria-label]="'Nombre del referente ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div data-etiqueta="Cargo">
+            <mat-form-field><input matInput formControlName="cargo" [attr.aria-label]="'Cargo del referente ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div data-etiqueta="Teléfono">
+            <mat-form-field><input matInput type="tel" formControlName="telefono" [attr.aria-label]="'Teléfono del referente ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div data-etiqueta="Correo">
+            <mat-form-field><input matInput type="email" formControlName="correo" [attr.aria-label]="'Correo del referente ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div class="te-control">
+            <mat-checkbox formControlName="activo" [aria-label]="'Referente ' + (i + 1) + ' activo'"><span class="solo-angosto">Activo</span></mat-checkbox>
+          </div>
+          <div class="te-control te-acciones">
+            @if (editable()) {
+              <button mat-icon-button type="button" [attr.aria-label]="'Quitar referente ' + (i + 1)" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
+            }
+          </div>
         </div>
       } @empty {
-        <p class="vacio">Sin referentes.</p>
+        <p class="te-vacio">Sin referentes cargados.</p>
       }
       @if (editable()) {
-        <div class="acciones-editor">
-          <button mat-stroked-button type="button" (click)="agregar()"><mat-icon>add</mat-icon> Agregar referente</button>
-          <span class="espacio"></span>
+        <div class="te-pie">
+          <button mat-button type="button" class="te-agregar" (click)="agregar()"><mat-icon>add</mat-icon> Agregar referente</button>
+          @if (filas.dirty) { <span class="suave cambios" role="status">Hay cambios sin guardar</span> }
           <button mat-flat-button type="button" (click)="guardar()" [disabled]="filas.invalid || filas.pristine || guardando()">Guardar referentes</button>
         </div>
       }
-      <p class="suave nota">Uso interno de la Dirección de Turismo: no se publican.</p>
     </div>
   `,
   styleUrl: '../comun/editores.scss',
+  styles: `.cambios { font-size: 13px; }`,
 })
 export class ReferentesEditor implements OnInit {
   private readonly avisoDeCambios = avisarSiHayCambios('Referentes', () => this.filas.dirty);

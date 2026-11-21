@@ -20,63 +20,99 @@ import { avisarSiHayCambios } from '../core/cambios-pendientes';
   selector: 'app-establecimiento-form',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatCheckboxModule, MatButtonModule, MatIconModule, SelectorRemoto],
   template: `
-    <form class="formulario" [formGroup]="form" (ngSubmit)="guardar()">
-      <mat-form-field class="ancho-completo">
-        <mat-label>Nombre</mat-label>
-        <input matInput formControlName="nombre" />
-      </mat-form-field>
+    <form class="secciones" [formGroup]="form" (ngSubmit)="guardar()">
+      <section class="seccion" aria-labelledby="sec-identificacion">
+        <div class="seccion-cabeza">
+          <h2 id="sec-identificacion">Identificación</h2>
+          <p class="seccion-ayuda">Cómo se llama y quién es el titular: la persona o empresa responsable.</p>
+        </div>
+        <div class="campos">
+          <mat-form-field class="ancho-completo">
+            <mat-label>Nombre</mat-label>
+            <input matInput formControlName="nombre" />
+          </mat-form-field>
+          <app-selector-remoto class="ancho-completo" formControlName="oferenteId" ruta="/oferentes" etiqueta="Oferente (titular)"
+                               [textoInicial]="establecimiento()?.oferente?.nombre" />
+        </div>
+      </section>
 
-      <app-selector-remoto class="ancho-completo" formControlName="oferenteId" ruta="/oferentes" etiqueta="Oferente (titular)"
-                           [textoInicial]="establecimiento()?.oferente?.nombre" ayuda="Persona o empresa responsable" />
-
-      <div class="ancho-completo lugar">
-        <app-selector-remoto #selectorLugar formControlName="lugarId" ruta="/lugares" etiqueta="Ubicación (lugar)"
-                             [textoInicial]="establecimiento()?.lugar?.nombre" [detalle]="direccionLugar"
-                             ayuda="Buscá por nombre o calle" />
-        @if (editable()) {
-          <button mat-stroked-button type="button" (click)="nuevoLugar()"><mat-icon>add_location</mat-icon> Nuevo lugar</button>
-          @if (form.controls.lugarId.value) {
-            <button mat-stroked-button type="button" (click)="editarLugar()"><mat-icon>edit_location</mat-icon> Editar lugar</button>
+      <section class="seccion" aria-labelledby="sec-ubicacion">
+        <div class="seccion-cabeza">
+          <h2 id="sec-ubicacion">Ubicación</h2>
+          <p class="seccion-ayuda">El lugar donde funciona. Para publicarlo necesita coordenadas verificadas.</p>
+        </div>
+        <div class="campos">
+          <div class="ancho-completo lugar">
+            <app-selector-remoto #selectorLugar formControlName="lugarId" ruta="/lugares" etiqueta="Lugar"
+                                 [textoInicial]="establecimiento()?.lugar?.nombre" [detalle]="direccionLugar"
+                                 ayuda="Buscá por nombre o calle" />
+            @if (editable()) {
+              <div class="lugar-botones">
+                <button mat-stroked-button type="button" (click)="nuevoLugar()"><mat-icon>add_location</mat-icon> Nuevo lugar</button>
+                @if (form.controls.lugarId.value) {
+                  <button mat-stroked-button type="button" (click)="editarLugar()"><mat-icon>edit_location</mat-icon> Editar lugar</button>
+                }
+              </div>
+            }
+          </div>
+          @if (establecimiento()?.lugar; as l) {
+            <p class="ancho-completo direccion">
+              <mat-icon aria-hidden="true">place</mat-icon>
+              <span>
+                {{ l.direccion || 'Sin dirección' }}{{ l.localidad ? ', ' + l.localidad : '' }}
+                <span class="coordenadas">{{ l.coordenadas ? l.coordenadas.lat.toFixed(5) + ', ' + l.coordenadas.lng.toFixed(5) : 'Sin coordenadas' }}</span>
+              </span>
+            </p>
           }
-        }
-      </div>
-      @if (establecimiento()?.lugar; as l) {
-        <p class="ancho-completo suave direccion">
-          {{ l.direccion || 'Sin dirección' }}{{ l.localidad ? ' · ' + l.localidad : '' }}
-          {{ l.coordenadas ? ' · ' + l.coordenadas.lat.toFixed(5) + ', ' + l.coordenadas.lng.toFixed(5) : ' · sin coordenadas' }}
-        </p>
-      }
+        </div>
+      </section>
 
-      <mat-form-field class="ancho-completo">
-        <mat-label>Descripción</mat-label>
-        <textarea matInput rows="4" formControlName="descripcion"></textarea>
-        <mat-hint>Se muestra en el sitio público</mat-hint>
-      </mat-form-field>
-      <mat-form-field class="ancho-completo">
-        <mat-label>Notas internas</mat-label>
-        <textarea matInput rows="3" formControlName="notasInternas"></textarea>
-        <mat-hint>Solo para el equipo: no se publican</mat-hint>
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Año de inauguración</mat-label>
-        <input matInput type="number" formControlName="anioInauguracion" />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Estado de funcionamiento</mat-label>
-        <input matInput formControlName="estadoFuncionamiento" placeholder="Abierto, cerrado temporalmente…" />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Motivo del estado</mat-label>
-        <input matInput formControlName="motivoEstado" />
-      </mat-form-field>
-      <mat-form-field>
-        <mat-label>Fecha de reapertura</mat-label>
-        <input matInput type="date" formControlName="fechaReapertura" />
-      </mat-form-field>
-      <mat-checkbox formControlName="destacado">Destacado en el sitio público</mat-checkbox>
+      <section class="seccion" aria-labelledby="sec-textos">
+        <div class="seccion-cabeza">
+          <h2 id="sec-textos">Textos</h2>
+          <p class="seccion-ayuda">La descripción se muestra en el sitio público. Las notas internas quedan solo para el equipo.</p>
+        </div>
+        <div class="campos">
+          <mat-form-field class="ancho-completo">
+            <mat-label>Descripción (pública)</mat-label>
+            <textarea matInput rows="5" formControlName="descripcion"></textarea>
+          </mat-form-field>
+          <mat-form-field class="ancho-completo">
+            <mat-label>Notas internas</mat-label>
+            <textarea matInput rows="3" formControlName="notasInternas"></textarea>
+          </mat-form-field>
+        </div>
+      </section>
+
+      <section class="seccion" aria-labelledby="sec-funcionamiento">
+        <div class="seccion-cabeza">
+          <h2 id="sec-funcionamiento">Funcionamiento</h2>
+          <p class="seccion-ayuda">Si está abierto, cerrado por un tiempo o cuándo reabre.</p>
+        </div>
+        <div class="campos">
+          <mat-form-field>
+            <mat-label>Estado de funcionamiento</mat-label>
+            <input matInput formControlName="estadoFuncionamiento" placeholder="Abierto, cerrado temporalmente…" />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Motivo del estado</mat-label>
+            <input matInput formControlName="motivoEstado" />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Fecha de reapertura</mat-label>
+            <input matInput type="date" formControlName="fechaReapertura" />
+          </mat-form-field>
+          <mat-form-field>
+            <mat-label>Año de inauguración</mat-label>
+            <input matInput type="number" formControlName="anioInauguracion" />
+          </mat-form-field>
+          <mat-checkbox class="ancho-completo" formControlName="destacado">Destacado en el sitio público</mat-checkbox>
+        </div>
+      </section>
 
       @if (editable()) {
-        <div class="ancho-completo botones">
+        <div class="barra-guardar">
+          @if (form.dirty) { <span class="estado-cambios" role="status">Hay cambios sin guardar</span> }
           @if (enCola()) {
             <button mat-stroked-button type="button" (click)="guardar(true)" [disabled]="form.invalid || form.pristine || guardando()">
               Guardar y pasar al siguiente
@@ -90,11 +126,14 @@ import { avisarSiHayCambios } from '../core/cambios-pendientes';
     </form>
   `,
   styles: `
-    .lugar { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
-    .lugar app-selector-remoto { flex: 1 1 320px; }
-    .lugar button { margin-top: 8px; }
-    .direccion { margin: -4px 0 8px; }
-    .botones { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .lugar { display: flex; gap: 8px 12px; align-items: flex-start; flex-wrap: wrap; }
+    .lugar app-selector-remoto { flex: 1 1 320px; min-width: 0; }
+    /* Los botones se alinean con la caja del campo (52px a densidad -1), no con su ayuda. */
+    .lugar-botones { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; min-height: 52px; }
+    .direccion { display: flex; gap: 6px; align-items: flex-start; margin: 0 0 8px; font-size: 13.5px; color: var(--sicat-tinta); }
+    .direccion mat-icon { flex: none; font-size: 18px; width: 18px; height: 18px; color: var(--sicat-texto-suave); }
+    .coordenadas { display: block; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
+    mat-checkbox { margin: 0 0 8px -8px; }
   `,
 })
 export class EstablecimientoForm implements OnInit {

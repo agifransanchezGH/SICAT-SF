@@ -18,7 +18,8 @@ import { Oferente } from '../core/modelos';
   template: `
     <h2 mat-dialog-title>{{ oferente ? 'Editar oferente' : 'Nuevo oferente' }}</h2>
     <mat-dialog-content>
-      <form class="campos" [formGroup]="form">
+      <p class="intro">La persona, empresa u organismo responsable de uno o más establecimientos.</p>
+      <form id="form-oferente" class="campos" [formGroup]="form" (ngSubmit)="guardar()">
         <mat-form-field>
           <mat-label>Nombre o razón social</mat-label>
           <input matInput formControlName="nombre" />
@@ -33,10 +34,15 @@ import { Oferente } from '../core/modelos';
     </mat-dialog-content>
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancelar</button>
-      <button mat-flat-button (click)="guardar()" [disabled]="form.invalid || guardando()">Guardar</button>
+      <button mat-flat-button type="submit" form="form-oferente" [disabled]="form.invalid || guardando()">
+        {{ oferente ? 'Guardar cambios' : 'Crear oferente' }}
+      </button>
     </mat-dialog-actions>
   `,
-  styles: `.campos { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; min-width: min(420px, 80vw); }`,
+  styles: `
+    .intro { margin: 0 0 16px; font-size: 14px; color: var(--sicat-texto-suave); max-width: 46ch; }
+    .campos { display: flex; flex-direction: column; gap: 4px; min-width: min(440px, 80vw); }
+  `,
 })
 export class OferenteDialog {
   private readonly api = inject(Api);
