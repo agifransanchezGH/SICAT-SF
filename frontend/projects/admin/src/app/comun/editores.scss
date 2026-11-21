@@ -1,4 +1,4 @@
-/* Estilos comunes de los editores de listas (contactos, horarios, características, etc.) */
+/* Estilos comunes de los editores de listas (contactos, referentes, distinciones, horarios) */
 .editor {
   display: flex;
   flex-direction: column;
@@ -6,6 +6,7 @@
   padding: 16px;
 }
 
+/* Fila suelta con etiquetas propias (horarios). Las listas de la ficha usan la tabla editable de abajo. */
 .fila {
   display: flex;
   gap: 8px 12px;
@@ -43,4 +44,128 @@
   margin: 12px 0 0;
   font: var(--mat-sys-title-small);
   color: var(--sicat-texto-suave);
+}
+
+.aviso {
+  color: var(--sicat-alerta);
+}
+
+/*
+ * Tabla editable: una fila por elemento, los títulos de columna una sola vez arriba y los campos sin etiqueta
+ * repetida (cada uno lleva su aria-label). Cada editor define las columnas con --columnas. En un contenedor
+ * angosto cada fila se apila y la etiqueta vuelve sobre cada campo (data-etiqueta).
+ */
+.lista-editable {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 24px 0;
+}
+
+.lista-ayuda {
+  margin: 8px 0 12px;
+  font-size: 13px;
+  color: var(--sicat-texto-suave);
+  max-width: 72ch;
+}
+
+.te-cabecera,
+.te-fila {
+  display: grid;
+  grid-template-columns: var(--columnas);
+  gap: 0 12px;
+  align-items: start;
+}
+
+.te-cabecera {
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--sicat-borde);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sicat-texto-suave);
+}
+
+.te-fila {
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--sicat-borde);
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+/* Celdas que no son campos (casillas, botones): se centran con la caja del campo, no con su ayuda. */
+.te-control {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+}
+
+.te-acciones {
+  justify-content: flex-end;
+}
+
+.te-vacio {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--sicat-texto-suave);
+  border-bottom: 1px solid var(--sicat-borde);
+}
+
+.te-pie {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12px 0 16px;
+}
+
+/* Se agrega en línea, al pie de la lista: no compite con "Guardar". */
+.te-agregar {
+  margin-right: auto;
+}
+
+@container (max-width: 760px) {
+  .te-cabecera {
+    display: none;
+  }
+
+  .te-fila {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding-top: 14px;
+
+    > * {
+      grid-column: 1 / -1;
+    }
+
+    > .te-control {
+      grid-column: auto;
+      min-height: 40px;
+    }
+  }
+
+  [data-etiqueta]::before {
+    content: attr(data-etiqueta);
+    display: block;
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--sicat-texto-suave);
+  }
+
+  .te-control[data-etiqueta]::before {
+    display: none;
+  }
+}
+
+/* Texto que solo hace falta cuando la fila está apilada (en la tabla lo da el título de la columna). */
+.solo-angosto {
+  display: none;
+}
+
+@container (max-width: 760px) {
+  .solo-angosto {
+    display: inline;
+  }
 }

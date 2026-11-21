@@ -95,6 +95,90 @@ html {
   }
 }
 
+/*
+ * Formularios por secciones: a la izquierda el título del grupo y para qué sirve, a la derecha sus campos.
+ * Se decide por el ancho del formulario (no de la ventana): el menú lateral puede estar abierto o contraído.
+ */
+.secciones {
+  container-type: inline-size;
+}
+
+.seccion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px 32px;
+  padding: 20px 24px 12px;
+
+  & + .seccion {
+    border-top: 1px solid var(--sicat-borde);
+  }
+}
+
+.seccion-cabeza {
+  padding-top: 4px;
+
+  h2,
+  h3 {
+    margin: 0;
+    font: 600 15px/1.3 Archivo, system-ui, sans-serif;
+    font-stretch: var(--sicat-ancho-nombre);
+    color: var(--sicat-tinta);
+  }
+}
+
+.seccion-ayuda {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sicat-texto-suave);
+  max-width: 40ch;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  /* Los campos no reservan lugar para la ayuda (subscriptSizing dynamic): el espacio lo da la grilla. */
+  gap: 16px;
+  align-content: start;
+  min-width: 0;
+
+  .ancho-completo {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (min-width: 760px) {
+  .seccion {
+    grid-template-columns: 200px minmax(0, 1fr);
+    padding-top: 24px;
+  }
+
+  .seccion-ayuda {
+    margin-bottom: 0;
+  }
+}
+
+/* Acciones de un formulario largo: al pie y fijas abajo mientras se recorre, así "Guardar" siempre está a mano. */
+.barra-guardar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: var(--mat-sys-surface);
+  border-top: 1px solid var(--sicat-borde);
+
+  .estado-cambios {
+    margin-right: auto;
+    font-size: 13px;
+    color: var(--sicat-texto-suave);
+  }
+}
+
 .acciones {
   display: flex;
   gap: 8px;

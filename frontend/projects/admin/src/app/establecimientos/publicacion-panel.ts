@@ -6,52 +6,72 @@ import { Api } from '../core/api';
 import { Avisos, erroresDe } from '../core/avisos';
 import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
-import { Establecimiento, EstadoPublicacionInfo } from '../core/modelos';
+import { Establecimiento, EstadoPublicacion, EstadoPublicacionInfo } from '../core/modelos';
 
 /** Estado de publicación, requisitos que faltan y acciones publicar / despublicar (ADR 0008). */
 @Component({
   selector: 'app-publicacion-panel',
   imports: [MatButtonModule, MatIconModule, EstadoChip],
   template: `
-    <div class="panel">
-      @if (info(); as i) {
-        <p>Estado actual: <app-estado [valor]="i.estado" /></p>
-        @if (i.faltantes.length) {
-          <p><strong>Para publicarlo falta:</strong></p>
-          <ul class="faltantes">
-            @for (f of i.faltantes; track f) { <li><mat-icon inline>close</mat-icon> {{ f }}</li> }
-          </ul>
-        } @else {
-          <p class="ok"><mat-icon inline>check_circle</mat-icon> Cumple todos los requisitos para publicarse.</p>
-        }
-        @if (editable()) {
-          <div class="botones">
-            @if (i.estado !== 'PUBLICADO') {
-              <button mat-flat-button [disabled]="!i.puedePublicarse || enviando()" (click)="publicar()">
-                <mat-icon>public</mat-icon> Publicar
-              </button>
-            } @else {
-              <button mat-stroked-button [disabled]="enviando()" (click)="despublicar()">
-                <mat-icon>visibility_off</mat-icon> Despublicar
-              </button>
+    @if (info(); as i) {
+      <div class="secciones">
+        <section class="seccion" aria-labelledby="pub-estado">
+          <div class="seccion-cabeza">
+            <h2 id="pub-estado">Estado en el sitio</h2>
+            <p class="seccion-ayuda">Si un establecimiento publicado deja de cumplir los requisitos, pasa a "Oculto" solo.</p>
+          </div>
+          <div class="estado-fila">
+            <app-estado [valor]="i.estado" />
+            <span class="explicacion">{{ explicacion(i.estado) }}</span>
+            @if (editable()) {
+              @if (i.estado !== 'PUBLICADO') {
+                <button mat-flat-button [disabled]="!i.puedePublicarse || enviando()" (click)="publicar()">
+                  <mat-icon>public</mat-icon> Publicar
+                </button>
+              } @else {
+                <button mat-stroked-button [disabled]="enviando()" (click)="despublicar()">
+                  <mat-icon>visibility_off</mat-icon> Despublicar
+                </button>
+              }
             }
           </div>
-        }
-        <p class="suave nota">
-          Requisitos: ubicación con coordenadas verificadas, oferente y establecimiento activos, y al menos una oferta activa
-          con categoría activa. Si un establecimiento publicado deja de cumplirlos, pasa a "Oculto".
-        </p>
-      }
-    </div>
+        </section>
+
+        <section class="seccion" aria-labelledby="pub-requisitos">
+          <div class="seccion-cabeza">
+            <h2 id="pub-requisitos">Requisitos</h2>
+            <p class="seccion-ayuda">
+              Ubicación con coordenadas verificadas, oferente y establecimiento activos, y al menos una oferta activa con
+              categoría activa.
+            </p>
+          </div>
+          @if (i.faltantes.length) {
+            <div>
+              <p class="titulo-lista">Para publicarlo falta:</p>
+              <ul class="faltantes">
+                @for (f of i.faltantes; track f) {
+                  <li><mat-icon aria-hidden="true">cancel</mat-icon><span>{{ f }}</span></li>
+                }
+              </ul>
+            </div>
+          } @else {
+            <p class="ok"><mat-icon aria-hidden="true">check_circle</mat-icon> Cumple todos los requisitos para publicarse.</p>
+          }
+        </section>
+      </div>
+    } @else {
+      <p class="vacio">Cargando estado de publicación…</p>
+    }
   `,
   styles: `
-    .panel { padding: 16px; }
-    .faltantes { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 4px; }
-    .faltantes mat-icon { color: var(--sicat-error); vertical-align: -2px; }
-    .ok { color: var(--sicat-ok); }
-    .ok mat-icon { vertical-align: -2px; }
-    .botones { display: flex; gap: 8px; margin: 12px 0; }
-    .nota { font-size: 13px; }
+    .estado-fila { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 4px 0 8px; }
+    .explicacion { flex: 1 1 240px; color: var(--sicat-tinta); }
+    .titulo-lista { margin: 4px 0 8px; font-weight: 600; }
+    .faltantes { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 6px; }
+    .faltantes li { display: flex; gap: 8px; align-items: flex-start; }
+    .faltantes mat-icon { flex: none; font-size: 20px; width: 20px; height: 20px; color: var(--sicat-error); }
+    .ok { display: flex; gap: 8px; align-items: center; margin: 4px 0 8px; color: var(--sicat-ok); font-weight: 600; }
+    .ok mat-icon { font-size: 20px; width: 20px; height: 20px; }
   `,
 })
 export class PublicacionPanel implements OnInit {
@@ -68,6 +88,14 @@ export class PublicacionPanel implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+  }
+
+  protected explicacion(estado: EstadoPublicacion): string {
+    return {
+      BORRADOR: 'Todavía no se muestra en el sitio público.',
+      PUBLICADO: 'Se muestra en el sitio público.',
+      OCULTO: 'Estuvo publicado y ahora no se muestra en el sitio.',
+    }[estado];
   }
 
   cargar(): void {

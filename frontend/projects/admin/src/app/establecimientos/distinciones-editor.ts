@@ -11,44 +11,58 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { DistincionAsignada } from '../core/modelos';
-import { avisarSiHayCambios } from '../core/cambios-pendientes';
+
+import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 /** Premios y certificaciones del establecimiento (catálogo "distincion"). */
 @Component({
   selector: 'app-distinciones-editor',
   imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatIconModule],
   template: `
-    <div class="editor">
+    <div class="lista-editable" style="--columnas: minmax(220px, 2fr) 100px minmax(200px, 1.6fr) 48px">
+      <p class="lista-ayuda">Premios y certificaciones. La URL sirve para comprobar que la distinción es real.</p>
+      @if (filas.length) {
+        <div class="te-cabecera" aria-hidden="true">
+          <span>Distinción</span><span>Año</span><span>URL de verificación</span><span></span>
+        </div>
+      }
       @for (fila of filas.controls; track fila; let i = $index) {
-        <div class="fila" [formGroup]="fila">
-          <mat-form-field class="nombre">
-            <mat-label>Distinción</mat-label>
-            <mat-select formControlName="distincionId">
-              @for (d of catalogo(); track d.id) {
-                <mat-option [value]="d.id">{{ d.nombre }}{{ d.organismoOtorgante ? ' · ' + d.organismoOtorgante : '' }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field class="anio"><mat-label>Año</mat-label><input matInput type="number" formControlName="anioOtorgamiento" /></mat-form-field>
-          <mat-form-field class="url"><mat-label>URL de verificación</mat-label><input matInput formControlName="urlVerificacion" /></mat-form-field>
-          @if (editable()) {
-            <button mat-icon-button type="button" aria-label="Quitar" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
-          }
+        <div class="te-fila" [formGroup]="fila" role="group" [attr.aria-label]="'Distinción ' + (i + 1)">
+          <div data-etiqueta="Distinción">
+            <mat-form-field>
+              <mat-select formControlName="distincionId" [aria-label]="'Distinción ' + (i + 1)">
+                @for (d of catalogo(); track d.id) {
+                  <mat-option [value]="d.id">{{ d.nombre }}{{ d.organismoOtorgante ? ' · ' + d.organismoOtorgante : '' }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <div data-etiqueta="Año">
+            <mat-form-field><input matInput type="number" formControlName="anioOtorgamiento" [attr.aria-label]="'Año de la distinción ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div data-etiqueta="URL de verificación">
+            <mat-form-field><input matInput type="url" formControlName="urlVerificacion" [attr.aria-label]="'URL de verificación de la distinción ' + (i + 1)" /></mat-form-field>
+          </div>
+          <div class="te-control te-acciones">
+            @if (editable()) {
+              <button mat-icon-button type="button" [attr.aria-label]="'Quitar distinción ' + (i + 1)" (click)="quitar(i)"><mat-icon>delete</mat-icon></button>
+            }
+          </div>
         </div>
       } @empty {
-        <p class="vacio">Sin distinciones.</p>
+        <p class="te-vacio">Sin distinciones cargadas.</p>
       }
       @if (editable()) {
-        <div class="acciones-editor">
-          <button mat-stroked-button type="button" (click)="agregar()"><mat-icon>add</mat-icon> Agregar distinción</button>
-          <span class="espacio"></span>
+        <div class="te-pie">
+          <button mat-button type="button" class="te-agregar" (click)="agregar()"><mat-icon>add</mat-icon> Agregar distinción</button>
+          @if (filas.dirty) { <span class="suave cambios" role="status">Hay cambios sin guardar</span> }
           <button mat-flat-button type="button" (click)="guardar()" [disabled]="filas.invalid || filas.pristine || guardando()">Guardar distinciones</button>
         </div>
       }
     </div>
   `,
   styleUrl: '../comun/editores.scss',
-  styles: `.nombre { flex: 2 1 260px; } .anio { max-width: 110px; } .url { flex: 2 1 240px; }`,
+  styles: `.cambios { font-size: 13px; }`,
 })
 export class DistincionesEditor implements OnInit {
   private readonly avisoDeCambios = avisarSiHayCambios('Distinciones', () => this.filas.dirty);
