@@ -18,7 +18,7 @@ import { Avisos } from '../core/avisos';
 import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
 import { Establecimiento, Lugar, Requisito } from '../core/modelos';
-import { LugarDialog } from '../lugares/lugar-dialog';
+import { LugarDialog, OPCIONES_DIALOGO_LUGAR } from '../lugares/lugar-dialog';
 import { ChecklistPublicacion } from './checklist-publicacion';
 import { NavegacionCola } from './cola-fichas';
 import { DistincionesEditor } from './distinciones-editor';
@@ -275,7 +275,7 @@ export class EstablecimientoPage {
   private abrirLugar(id: number): void {
     this.api.get<Lugar>(`/lugares/${id}`).subscribe({
       next: (l) =>
-        this.dialog.open(LugarDialog, { data: l, width: '720px' }).afterClosed().subscribe((r?: Lugar) => {
+        this.dialog.open(LugarDialog, { data: l, ...OPCIONES_DIALOGO_LUGAR }).afterClosed().subscribe((r?: Lugar) => {
           if (r) {
             this.recargar();
           }

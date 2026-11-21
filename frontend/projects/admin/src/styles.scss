@@ -158,6 +158,11 @@ html {
   }
 }
 
+/* Diálogos con formularios por secciones: Material M3 los limita a 560px. */
+.dialogo-ancho {
+  --mat-dialog-container-max-width: 100%;
+}
+
 /* Acciones de un formulario largo: al pie y fijas abajo mientras se recorre, así "Guardar" siempre está a mano. */
 .barra-guardar {
   position: sticky;

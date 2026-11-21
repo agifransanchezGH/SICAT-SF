@@ -11,7 +11,7 @@ import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Establecimiento, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
-import { LugarDialog } from '../lugares/lugar-dialog';
+import { LugarDialog, OPCIONES_DIALOGO_LUGAR } from '../lugares/lugar-dialog';
 
 import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
@@ -191,7 +191,7 @@ export class EstablecimientoForm implements OnInit {
   protected nuevoLugar(): void {
     const nombre = this.form.controls.nombre.value;
     this.dialog
-      .open(LugarDialog, { data: nombre ? ({ nombre } as Lugar) : null, width: '720px' })
+      .open(LugarDialog, { data: nombre ? ({ nombre } as Lugar) : null, ...OPCIONES_DIALOGO_LUGAR })
       .afterClosed()
       .subscribe((l?: Lugar) => this.fijarLugar(l));
   }
@@ -200,7 +200,7 @@ export class EstablecimientoForm implements OnInit {
     const id = this.form.controls.lugarId.value;
     this.api.get<Lugar>(`/lugares/${id}`).subscribe({
       next: (l) =>
-        this.dialog.open(LugarDialog, { data: l, width: '720px' }).afterClosed().subscribe((r?: Lugar) => this.fijarLugar(r)),
+        this.dialog.open(LugarDialog, { data: l, ...OPCIONES_DIALOGO_LUGAR }).afterClosed().subscribe((r?: Lugar) => this.fijarLugar(r)),
       error: (e) => this.avisos.error(e),
     });
   }
