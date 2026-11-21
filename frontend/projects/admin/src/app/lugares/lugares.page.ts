@@ -33,7 +33,7 @@ import { ESTADOS_GEO, EstadoGeo, Lugar, Pagina } from '../core/modelos';
 import { CalidadChip, cuerpoLugar } from './calidad';
 import { POSICION_EN_COLA, elegirSiguiente } from './cola';
 import { PanelUbicacion } from './panel-ubicacion';
-import { LugarDialog, LugarGuardado } from './lugar-dialog';
+import { LugarDialog, OPCIONES_DIALOGO_LUGAR, LugarGuardado } from './lugar-dialog';
 
 const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PENDIENTE'];
 
@@ -421,7 +421,7 @@ export class LugaresPage {
 
   protected editar(l: Lugar | null): void {
     if (!l) {
-      this.dialog.open(LugarDialog, { data: null, width: '720px' }).afterClosed()
+      this.dialog.open(LugarDialog, { data: null, ...OPCIONES_DIALOGO_LUGAR }).afterClosed()
         .subscribe((r?: LugarGuardado) => r && this.recargar.next());
       return;
     }
@@ -436,7 +436,7 @@ export class LugaresPage {
     const cola = { posicion: this.numero * this.tamanio + indice + 1, total: p?.totalElementos ?? 0 };
     const injector = Injector.create({ providers: [{ provide: POSICION_EN_COLA, useValue: cola }], parent: this.injector });
     this.dialog
-      .open(LugarDialog, { data: l, width: '720px', injector })
+      .open(LugarDialog, { data: l, ...OPCIONES_DIALOGO_LUGAR, injector })
       .afterClosed()
       .subscribe((r?: LugarGuardado) => {
         if (r?.pasarAlSiguiente) {
