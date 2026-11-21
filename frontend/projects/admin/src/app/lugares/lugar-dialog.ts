@@ -14,6 +14,12 @@ import { ESTADOS_GEO, Lugar } from '../core/modelos';
 import { SelectorRemoto } from '../core/selector-remoto';
 import { POSICION_EN_COLA } from './cola';
 
+/**
+ * Tamaño del diálogo: lo bastante ancho para las secciones con el título al costado. Material M3 limita los diálogos
+ * a 560px; la clase "dialogo-ancho" (styles.scss) levanta ese tope y en pantallas chicas manda el 94vw.
+ */
+export const OPCIONES_DIALOGO_LUGAR = { width: '960px', maxWidth: '94vw', panelClass: 'dialogo-ancho' };
+
 /** Lo que devuelve el diálogo al cerrarse guardando. */
 export type LugarGuardado = Lugar & { pasarAlSiguiente?: boolean; saltado?: boolean };
 import { RouterLink } from '@angular/router';
@@ -36,81 +42,113 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
   },
   template: `
     <h2 mat-dialog-title>
-      {{ lugar ? 'Editar lugar' : 'Nuevo lugar' }}
+      {{ lugar?.id ? 'Editar lugar' : 'Nuevo lugar' }}
       @if (cola) { <span class="posicion">{{ cola.posicion }} de {{ cola.total }}</span> }
     </h2>
     <mat-dialog-content>
-      <form class="grilla" [formGroup]="form">
-        <mat-form-field class="ancho-completo">
-          <mat-label>Nombre</mat-label>
-          <input matInput formControlName="nombre" />
-          <mat-hint>Ej.: "Costanera Este" o el nombre del establecimiento</mat-hint>
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Tipo de lugar</mat-label>
-          <mat-select formControlName="tipoLugarId">
-            <mat-option [value]="null">—</mat-option>
-            @for (t of tipos(); track t.id) { <mat-option [value]="t.id">{{ t.nombre }}</mat-option> }
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Localidad</mat-label>
-          <mat-select formControlName="localidadId">
-            <mat-option [value]="null">—</mat-option>
-            @for (l of localidades(); track l.id) { <mat-option [value]="l.id">{{ l.nombre }}</mat-option> }
-          </mat-select>
-        </mat-form-field>
-        <app-selector-remoto class="ancho-completo" formControlName="padreId" ruta="/lugares" etiqueta="Dentro de (opcional)"
-                             [textoInicial]="lugar?.padre" ayuda="Lugar que lo contiene, p. ej. un parque" />
-        <mat-form-field>
-          <mat-label>Calle</mat-label>
-          <input matInput formControlName="calle" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Altura</mat-label>
-          <input matInput type="number" formControlName="altura" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Km (rutas)</mat-label>
-          <input matInput type="number" step="0.1" formControlName="km" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Esquina / entre calles</mat-label>
-          <input matInput formControlName="calleCruce" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Complemento</mat-label>
-          <input matInput formControlName="complemento" />
-          <mat-hint>Piso, local, etc.</mat-hint>
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Latitud</mat-label>
-          <input matInput type="number" step="0.000001" formControlName="lat" placeholder="-31.63" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Longitud</mat-label>
-          <input matInput type="number" step="0.000001" formControlName="lng" placeholder="-60.70" />
-        </mat-form-field>
-        <mat-form-field>
-          <mat-label>Estado de la ubicación</mat-label>
-          <mat-select formControlName="estadoGeo">
-            <mat-option [value]="null">—</mat-option>
-            @for (e of estadosGeo; track e.valor) { <mat-option [value]="e.valor">{{ e.texto }}</mat-option> }
-          </mat-select>
-          <mat-hint>Para publicar tiene que estar "Verificado"</mat-hint>
-        </mat-form-field>
-        @if (lugar?.establecimientos?.length) {
-          <div class="ancho-completo relacionados">
-            <strong>Establecimientos en este lugar:</strong>
-            @for (e of lugar!.establecimientos!; track e.id) {
-              <a [routerLink]="['/establecimientos', e.id]" mat-dialog-close>{{ e.nombre }}</a>{{ e.activo ? '' : ' (de baja)' }}{{ $last ? '' : ' · ' }}
-            }
+      <form class="secciones" [formGroup]="form">
+        <section class="seccion" aria-labelledby="lugar-identificacion">
+          <div class="seccion-cabeza">
+            <h3 id="lugar-identificacion">Identificación</h3>
+            <p class="seccion-ayuda">Cómo se llama el lugar y, si está dentro de otro (un parque, un predio), cuál es.</p>
           </div>
+          <div class="campos">
+            <mat-form-field class="ancho-completo">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="nombre" />
+              <mat-hint>Ej.: "Costanera Este" o el nombre del establecimiento</mat-hint>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Tipo de lugar</mat-label>
+              <mat-select formControlName="tipoLugarId">
+                <mat-option [value]="null">Sin tipo</mat-option>
+                @for (t of tipos(); track t.id) { <mat-option [value]="t.id">{{ t.nombre }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+            <app-selector-remoto formControlName="padreId" ruta="/lugares" etiqueta="Dentro de (opcional)" [textoInicial]="lugar?.padre" />
+          </div>
+        </section>
+
+        <section class="seccion" aria-labelledby="lugar-direccion">
+          <div class="seccion-cabeza">
+            <h3 id="lugar-direccion">Dirección</h3>
+            <p class="seccion-ayuda">Calle y altura, o el kilómetro si está sobre una ruta.</p>
+          </div>
+          <div class="campos direccion">
+            <mat-form-field class="calle">
+              <mat-label>Calle</mat-label>
+              <input matInput formControlName="calle" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Altura</mat-label>
+              <input matInput type="number" formControlName="altura" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Km (rutas)</mat-label>
+              <input matInput type="number" step="0.1" formControlName="km" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Esquina / entre calles</mat-label>
+              <input matInput formControlName="calleCruce" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Complemento</mat-label>
+              <input matInput formControlName="complemento" placeholder="Piso, local…" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Localidad</mat-label>
+              <mat-select formControlName="localidadId">
+                <mat-option [value]="null">Sin localidad</mat-option>
+                @for (l of localidades(); track l.id) { <mat-option [value]="l.id">{{ l.nombre }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </section>
+
+        <section class="seccion" aria-labelledby="lugar-mapa">
+          <div class="seccion-cabeza">
+            <h3 id="lugar-mapa">Ubicación en el mapa</h3>
+            <p class="seccion-ayuda">
+              Tocá el mapa o arrastrá el pin para marcar la puerta. Al marcarla o escribir las coordenadas queda "Verificado",
+              que es lo que se necesita para publicar.
+            </p>
+          </div>
+          <div class="campos">
+            <sicat-mapa class="mapa ancho-completo" [centro]="centroInicial" [zoom]="lugar?.coordenadas ? 17 : 13" (listo)="alListo($event)" />
+            <mat-form-field>
+              <mat-label>Latitud</mat-label>
+              <input matInput type="number" step="0.000001" formControlName="lat" placeholder="-31.63" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Longitud</mat-label>
+              <input matInput type="number" step="0.000001" formControlName="lng" placeholder="-60.70" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>Estado de la ubicación</mat-label>
+              <mat-select formControlName="estadoGeo">
+                <mat-option [value]="null">Sin estado</mat-option>
+                @for (e of estadosGeo; track e.valor) { <mat-option [value]="e.valor">{{ e.texto }}</mat-option> }
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </section>
+
+        @if (lugar?.establecimientos?.length) {
+          <section class="seccion" aria-labelledby="lugar-establecimientos">
+            <div class="seccion-cabeza">
+              <h3 id="lugar-establecimientos">Establecimientos</h3>
+              <p class="seccion-ayuda">Los que funcionan en este lugar. Los cambios de ubicación les llegan a todos.</p>
+            </div>
+            <ul class="relacionados">
+              @for (e of lugar!.establecimientos!; track e.id) {
+                <li>
+                  <a [routerLink]="['/establecimientos', e.id]" mat-dialog-close>{{ e.nombre }}</a>
+                  @if (!e.activo) { <span class="suave"> (de baja)</span> }
+                </li>
+              }
+            </ul>
+          </section>
         }
-        <div class="ancho-completo">
-          <p class="suave ayuda-mapa">Tocá el mapa o arrastrá el pin para marcar la ubicación exacta.</p>
-          <sicat-mapa class="mapa" [centro]="centroInicial" [zoom]="lugar?.coordenadas ? 17 : 13" (listo)="alListo($event)" />
-        </div>
       </form>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
@@ -124,21 +162,25 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
           Confirmar y siguiente <kbd aria-hidden="true">Ctrl+Enter</kbd>
         </button>
       } @else {
-        @if (lugar && lugar.coordenadas && lugar.estadoGeo !== 'VERIFICADO') {
+        @if (lugar?.id && lugar?.coordenadas && lugar?.estadoGeo !== 'VERIFICADO') {
           <button mat-stroked-button (click)="verificar()" [disabled]="guardando()">Confirmar ubicación</button>
         }
-        <button mat-flat-button (click)="guardar()" [disabled]="form.invalid || guardando()">Guardar</button>
+        <button mat-flat-button (click)="guardar()" [disabled]="form.invalid || guardando()">
+          {{ lugar?.id ? 'Guardar cambios' : 'Crear lugar' }}
+        </button>
       }
     </mat-dialog-actions>
   `,
   styles: `
-    .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px 12px; padding-top: 4px; }
-    .ancho-completo { grid-column: 1 / -1; }
-    .ayuda-mapa { margin: 4px 0 6px; font-size: 13px; }
-    .relacionados { font-size: 14px; padding: 4px 0; }
-    .mapa { height: 280px; border-radius: 8px; overflow: hidden; border: 1px solid var(--sicat-borde); }
+    /* El diálogo ya tiene su margen: las secciones van al ras. */
+    .seccion { padding-inline: 0; }
+    .seccion:first-child { padding-top: 4px; }
+    .direccion .calle { grid-column: span 2; }
+    .mapa { height: 300px; border-radius: 12px; overflow: hidden; border: 1px solid var(--sicat-borde); margin-bottom: 4px; }
+    .relacionados { margin: 0; padding: 4px 0 0 18px; display: grid; gap: 4px; font-size: 14px; }
     .posicion { margin-left: 8px; font-size: 14px; font-weight: 500; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
     kbd { margin-left: 6px; padding: 1px 5px; border-radius: 4px; background: rgb(255 255 255 / 18%); font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1.4; }
+    @container (max-width: 520px) { .direccion .calle { grid-column: auto; } }
   `,
 })
 export class LugarDialog {
@@ -269,7 +311,8 @@ export class LugarDialog {
       estadoGeo: coordenadas ? f.estadoGeo : f.estadoGeo === 'VERIFICADO' ? null : f.estadoGeo,
     };
     this.guardando.set(true);
-    const pedido = this.l ? this.api.put<Lugar>(`/lugares/${this.l.id}`, cuerpo) : this.api.post<Lugar>('/lugares', cuerpo);
+    // Desde "Nuevo lugar" de un establecimiento llega solo el nombre sugerido: sin id es un alta.
+    const pedido = this.l?.id ? this.api.put<Lugar>(`/lugares/${this.l.id}`, cuerpo) : this.api.post<Lugar>('/lugares', cuerpo);
     pedido.subscribe({
       next: (r) => {
         if (!pasarAlSiguiente) {
