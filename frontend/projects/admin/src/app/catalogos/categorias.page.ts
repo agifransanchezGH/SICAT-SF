@@ -26,42 +26,64 @@ import { CategoriaNodo } from '../core/modelos';
         <h1>Categorías</h1>
         <mat-checkbox [(ngModel)]="incluirInactivas" (change)="cargar()">Ver dadas de baja</mat-checkbox>
       </div>
-      <div class="tarjeta arbol">
+      <div class="tarjeta">
+        <div class="barra">
+          @if (esAdmin) {
+            <form class="nueva-raiz" (ngSubmit)="crear(null)">
+              <mat-form-field>
+                <mat-label>Nueva categoría principal</mat-label>
+                <input matInput name="nombreRaiz" [(ngModel)]="nombreRaiz" />
+              </mat-form-field>
+              <button mat-flat-button type="submit" [disabled]="!nombreRaiz.trim()"><mat-icon>add</mat-icon> Agregar</button>
+            </form>
+          }
+          <div class="vista">
+            <button mat-button type="button" (click)="expandirTodo()"><mat-icon>unfold_more</mat-icon> Abrir todo</button>
+            <button mat-button type="button" (click)="abiertos.set(vacio())"><mat-icon>unfold_less</mat-icon> Cerrar todo</button>
+          </div>
+        </div>
+
         <ng-template #nodoTpl let-nodos let-nivel="nivel">
           <ul [class.raiz]="nivel === 0">
             @for (n of nodos; track n.id) {
               <li>
-                <div class="nodo">
+                <div class="nodo" [class.inactiva]="!n.activo">
                   @if (n.hijos?.length) {
-                    <button mat-icon-button class="chico" (click)="alternar(n.id)" [attr.aria-label]="abiertos().has(n.id) ? 'Cerrar' : 'Abrir'">
+                    <button mat-icon-button class="chico" (click)="alternar(n.id)" [attr.aria-expanded]="abiertos().has(n.id)"
+                            [attr.aria-label]="(abiertos().has(n.id) ? 'Cerrar ' : 'Abrir ') + n.nombre">
                       <mat-icon>{{ abiertos().has(n.id) ? 'expand_more' : 'chevron_right' }}</mat-icon>
                     </button>
                   } @else {
                     <span class="hueco"></span>
                   }
                   @if (editandoId() === n.id) {
-                    <input class="edicion" [(ngModel)]="nombreEdicion" (keydown.enter)="renombrar(n)" (keydown.escape)="editandoId.set(null)" />
-                    <button mat-icon-button class="chico" matTooltip="Guardar" (click)="renombrar(n)"><mat-icon>check</mat-icon></button>
+                    <input class="edicion" [(ngModel)]="nombreEdicion" [attr.aria-label]="'Nuevo nombre de ' + n.nombre"
+                           (keydown.enter)="renombrar(n)" (keydown.escape)="editandoId.set(null)" />
+                    <button mat-icon-button class="chico" [attr.aria-label]="'Guardar el nombre de ' + n.nombre" matTooltip="Guardar" (click)="renombrar(n)"><mat-icon>check</mat-icon></button>
+                    <button mat-icon-button class="chico" aria-label="Cancelar" matTooltip="Cancelar" (click)="editandoId.set(null)"><mat-icon>close</mat-icon></button>
                   } @else {
-                    <span class="nombre">{{ n.nombre }}</span>
+                    <span class="nombre" [class.principal]="nivel === 0">{{ n.nombre }}</span>
+                    @if (n.hijos?.length) { <span class="cantidad">{{ n.hijos.length }} {{ n.hijos.length === 1 ? 'subcategoría' : 'subcategorías' }}</span> }
                     @if (!n.activo) { <app-estado valor="inactivo" /> }
                   }
                   @if (esAdmin && editandoId() !== n.id) {
                     <span class="acciones">
-                      <button mat-icon-button class="chico" matTooltip="Agregar subcategoría" (click)="nuevaEn(n)"><mat-icon>add</mat-icon></button>
-                      <button mat-icon-button class="chico" matTooltip="Renombrar" (click)="editar(n)"><mat-icon>edit</mat-icon></button>
+                      <button mat-icon-button class="chico" matTooltip="Agregar subcategoría" [attr.aria-label]="'Agregar subcategoría en ' + n.nombre" (click)="nuevaEn(n)"><mat-icon>add</mat-icon></button>
+                      <button mat-icon-button class="chico" matTooltip="Renombrar" [attr.aria-label]="'Renombrar ' + n.nombre" (click)="editar(n)"><mat-icon>edit</mat-icon></button>
                       @if (n.activo) {
-                        <button mat-icon-button class="chico" matTooltip="Dar de baja" (click)="darDeBaja(n)"><mat-icon>delete</mat-icon></button>
+                        <button mat-icon-button class="chico" matTooltip="Dar de baja" [attr.aria-label]="'Dar de baja ' + n.nombre" (click)="darDeBaja(n)"><mat-icon>delete</mat-icon></button>
                       } @else {
-                        <button mat-icon-button class="chico" matTooltip="Reactivar" (click)="reactivar(n)"><mat-icon>restore</mat-icon></button>
+                        <button mat-icon-button class="chico" matTooltip="Reactivar" [attr.aria-label]="'Reactivar ' + n.nombre" (click)="reactivar(n)"><mat-icon>restore</mat-icon></button>
                       }
                     </span>
                   }
                 </div>
                 @if (padreNueva() === n.id) {
                   <div class="nueva-hija">
-                    <input class="edicion" placeholder="Nombre de la subcategoría" [(ngModel)]="nombreNueva" (keydown.enter)="crear(n.id)" (keydown.escape)="padreNueva.set(undefined)" />
+                    <input class="edicion" placeholder="Nombre de la subcategoría" [attr.aria-label]="'Nueva subcategoría en ' + n.nombre"
+                           [(ngModel)]="nombreNueva" (keydown.enter)="crear(n.id)" (keydown.escape)="padreNueva.set(undefined)" />
                     <button mat-flat-button (click)="crear(n.id)" [disabled]="!nombreNueva.trim()">Agregar</button>
+                    <button mat-button (click)="padreNueva.set(undefined)">Cancelar</button>
                   </div>
                 }
                 @if (n.hijos?.length && abiertos().has(n.id)) {
@@ -71,35 +93,49 @@ import { CategoriaNodo } from '../core/modelos';
             }
           </ul>
         </ng-template>
-        <ng-container *ngTemplateOutlet="nodoTpl; context: { $implicit: arbol(), nivel: 0 }" />
-
-        @if (esAdmin) {
-          <div class="nueva-raiz">
-            <mat-form-field>
-              <mat-label>Nueva categoría principal</mat-label>
-              <input matInput [(ngModel)]="nombreRaiz" (keydown.enter)="crear(null)" />
-            </mat-form-field>
-            <button mat-flat-button (click)="crear(null)" [disabled]="!nombreRaiz.trim()"><mat-icon>add</mat-icon> Agregar</button>
+        @if (arbol().length) {
+          <div class="arbol">
+            <ng-container *ngTemplateOutlet="nodoTpl; context: { $implicit: arbol(), nivel: 0 }" />
           </div>
+        } @else {
+          <p class="vacio">Todavía no hay categorías.</p>
         }
       </div>
     </section>
   `,
   styles: `
-    .arbol { padding: 12px 16px; }
-    ul { list-style: none; margin: 0; padding-left: 24px; }
+    .barra {
+      display: flex; gap: 8px 16px; align-items: flex-start; flex-wrap: wrap; padding: 16px 20px 4px;
+      border-bottom: 1px solid var(--sicat-borde);
+    }
+    .nueva-raiz { display: flex; gap: 8px 12px; align-items: flex-start; flex-wrap: wrap; flex: 1 1 380px; }
+    .nueva-raiz mat-form-field { flex: 1 1 260px; max-width: 420px; }
+    .nueva-raiz button { min-height: 52px; }
+    .vista { display: flex; gap: 4px; margin-left: auto; min-height: 52px; align-items: center; }
+    .arbol { padding: 8px 12px 16px; }
+    ul { list-style: none; margin: 0; padding: 0 0 0 20px; }
+    /* Guía vertical para ver de qué categoría cuelga cada subcategoría. */
+    ul:not(.raiz) { margin-left: 15px; padding-left: 12px; border-left: 1px solid var(--sicat-borde); }
     ul.raiz { padding-left: 0; }
-    .nodo { display: flex; align-items: center; gap: 4px; min-height: 36px; }
-    .nodo:hover { background: var(--mat-sys-surface-container-low); border-radius: 6px; }
-    .nodo .acciones { visibility: hidden; margin-left: 8px; }
-    .nodo:hover .acciones { visibility: visible; }
-    .nombre { margin-right: 6px; }
+    ul.raiz > li + li { border-top: 1px solid var(--sicat-borde); }
+    .nodo { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-height: 40px; padding: 2px 6px 2px 0; border-radius: 6px; }
+    .nodo:hover, .nodo:focus-within { background: var(--mat-sys-surface-container-low); }
+    .nombre.principal { font-weight: 600; font-stretch: var(--sicat-ancho-nombre); }
+    .inactiva .nombre { color: var(--sicat-texto-suave); }
+    .cantidad { font-size: 12.5px; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
+    /* Las acciones aparecen al pasar el mouse o al llegar con el teclado; en pantallas táctiles, siempre. */
+    .acciones { display: inline-flex; margin-left: auto; opacity: 0; transition: opacity 120ms var(--sicat-curva); }
+    .nodo:hover .acciones, .nodo:focus-within .acciones { opacity: 1; }
     .hueco { display: inline-block; width: 32px; }
-    .chico { --mdc-icon-button-state-layer-size: 32px; width: 32px; height: 32px; padding: 4px; }
-    .edicion { padding: 4px 8px; border: 1px solid var(--sicat-borde); border-radius: 6px; font: inherit; min-width: 240px; }
-    .nueva-hija { display: flex; gap: 8px; align-items: center; padding: 4px 0 8px 36px; }
-    .nueva-raiz { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
-    @media (hover: none) { .nodo .acciones { visibility: visible; } }
+    .chico { --mat-icon-button-state-layer-size: 32px; width: 32px; height: 32px; padding: 4px; }
+    .edicion {
+      height: 36px; padding: 0 10px; min-width: min(280px, 100%); border: 1px solid var(--mat-sys-outline); border-radius: 4px;
+      background: var(--mat-sys-surface); color: var(--sicat-tinta); font: inherit;
+    }
+    .edicion:focus { outline: 2px solid var(--sicat-rio); outline-offset: 0; border-color: var(--sicat-rio); }
+    .nueva-hija { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 0 10px 40px; }
+    @media (hover: none) { .acciones { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .acciones { transition: none; } }
   `,
 })
 export class CategoriasPage {
@@ -139,6 +175,24 @@ export class CategoriasPage {
       }
       return r;
     });
+  }
+
+  protected vacio(): Set<number> {
+    return new Set();
+  }
+
+  /** Abre todas las categorías que tienen subcategorías. */
+  protected expandirTodo(): void {
+    const ids = new Set<number>();
+    const recorrer = (nodos: CategoriaNodo[]) =>
+      nodos.forEach((n) => {
+        if (n.hijos?.length) {
+          ids.add(n.id);
+          recorrer(n.hijos);
+        }
+      });
+    recorrer(this.arbol());
+    this.abiertos.set(ids);
   }
 
   protected editar(n: CategoriaNodo): void {

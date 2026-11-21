@@ -34,7 +34,7 @@ import { OferenteDialog } from './oferente-dialog';
       <div class="encabezado">
         <h1>Oferentes</h1>
         @if (puedeEditar) {
-          <button mat-flat-button (click)="nuevo()"><mat-icon>add</mat-icon> Nuevo</button>
+          <button mat-flat-button (click)="nuevo()"><mat-icon>add</mat-icon> Nuevo oferente</button>
         }
       </div>
       <form class="filtros" [formGroup]="filtros">
@@ -57,14 +57,14 @@ import { OferenteDialog } from './oferente-dialog';
         <table mat-table [dataSource]="pagina()?.contenido ?? []" class="tabla">
           <ng-container matColumnDef="nombre">
             <th mat-header-cell *matHeaderCellDef>Nombre</th>
-            <td mat-cell *matCellDef="let o"><strong>{{ o.nombre }}</strong></td>
+            <td mat-cell *matCellDef="let o"><a class="nombre" [routerLink]="['/oferentes', o.id]">{{ o.nombre }}</a></td>
           </ng-container>
           <ng-container matColumnDef="tipo">
             <th mat-header-cell *matHeaderCellDef>Tipo</th>
             <td mat-cell *matCellDef="let o">{{ o.tipoOferente }}</td>
           </ng-container>
           <ng-container matColumnDef="estado">
-            <th mat-header-cell *matHeaderCellDef></th>
+            <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Estado</span></th>
             <td mat-cell *matCellDef="let o">@if (!o.activo) { <app-estado valor="inactivo" /> }</td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="columnas"></tr>
@@ -76,6 +76,7 @@ import { OferenteDialog } from './oferente-dialog';
       </div>
     </section>
   `,
+  styles: `.nombre { font-weight: 600; color: inherit; text-decoration: none; } .nombre:hover { text-decoration: underline; }`,
 })
 export class OferentesPage {
   private readonly api = inject(Api);
