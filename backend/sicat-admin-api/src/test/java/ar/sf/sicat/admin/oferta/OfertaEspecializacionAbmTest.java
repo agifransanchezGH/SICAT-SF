@@ -94,7 +94,7 @@ class OfertaEspecializacionAbmTest extends PruebaAbm {
         long oferente = crearOferente();
         long oferta = crearOferta(crearEstablecimiento(oferente, null), crearCategoria(null));
         long partida = crearLugar(-31.65, -60.71, null);
-        long museo = crearEstablecimiento(oferente, null);
+        long museo = crearEstablecimiento(oferente, crearLugar(-31.6401, -60.7012, null));
         long iglesia = crearEstablecimiento(oferente, null);
 
         get_("/ofertas/" + oferta + "/circuito", 404);
@@ -112,6 +112,10 @@ class OfertaEspecializacionAbmTest extends PruebaAbm {
         String paradas = put_("/ofertas/" + oferta + "/circuito/paradas",
                 "[{\"establecimientoId\":%d},{\"establecimientoId\":%d}]".formatted(museo, iglesia), 200);
         assertThat((List<Integer>) leer(paradas, "$[*].orden")).containsExactly(1, 2);
+        // cada parada trae las coordenadas de su lugar para marcarla en el mapa; sin lugar, null
+        assertThat((Double) leer(paradas, "$[0].coordenadas.lat")).isEqualTo(-31.6401);
+        assertThat((Double) leer(paradas, "$[0].coordenadas.lng")).isEqualTo(-60.7012);
+        assertThat((Object) leer(paradas, "$[1].coordenadas")).isNull();
         String invertidas = put_("/ofertas/" + oferta + "/circuito/paradas",
                 "[{\"establecimientoId\":%d}]".formatted(iglesia), 200);
         assertThat((List<Object>) leer(invertidas, "$")).hasSize(1);

@@ -30,6 +30,7 @@ import ar.sf.sicat.admin.especializacion.dto.VisitaGuiadaDto;
 import ar.sf.sicat.admin.especializacion.dto.VisitaGuiadaSolicitud;
 import ar.sf.sicat.admin.oferta.HorarioService;
 import ar.sf.sicat.core.comun.EntidadNoEncontradaException;
+import ar.sf.sicat.core.comun.Geo;
 import ar.sf.sicat.core.comun.GeoJson;
 import ar.sf.sicat.core.dominio.clasificacion.Caracteristica;
 import ar.sf.sicat.core.dominio.clasificacion.CaracteristicaRepository;
@@ -46,6 +47,7 @@ import ar.sf.sicat.core.dominio.especializacion.salon.SalonRepository;
 import ar.sf.sicat.core.dominio.especializacion.visitaguiada.VisitaGuiada;
 import ar.sf.sicat.core.dominio.especializacion.visitaguiada.VisitaGuiadaRepository;
 import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
+import ar.sf.sicat.core.dominio.lugar.Lugar;
 import ar.sf.sicat.core.dominio.lugar.LugarRepository;
 import ar.sf.sicat.core.dominio.oferta.Oferta;
 import ar.sf.sicat.core.dominio.oferta.OfertaRepository;
@@ -148,8 +150,11 @@ public class EspecializacionService {
     public List<ParadaDto> paradas(Long idOferta) {
         circuitoExistente(idOferta);
         return paradas.findByCircuitoIdOrderByIdOrden(idOferta).stream()
-                .map(p -> new ParadaDto(p.getId().getOrden(), p.getEstablecimiento().getId(),
-                        p.getEstablecimiento().getNombre()))
+                .map(p -> {
+                    Lugar lugar = p.getEstablecimiento().getLugar();
+                    return new ParadaDto(p.getId().getOrden(), p.getEstablecimiento().getId(),
+                            p.getEstablecimiento().getNombre(), lugar == null ? null : Geo.coordenadas(lugar.getPunto()));
+                })
                 .toList();
     }
 

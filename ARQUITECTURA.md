@@ -300,7 +300,7 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 |---|---|---|---|
 | GET / PUT | `/ofertas/{id}/alojamiento` | Datos de alojamiento (PUT crea o reemplaza, 1 a 1) | todos / ADMIN, CARGADOR |
 | GET / PUT | `/ofertas/{id}/circuito` | Datos del circuito, trazado GeoJSON | todos / ADMIN, CARGADOR |
-| GET / PUT | `/ofertas/{id}/circuito/paradas` | Paradas ordenadas | todos / ADMIN, CARGADOR |
+| GET / PUT | `/ofertas/{id}/circuito/paradas` | Paradas ordenadas, cada una con las coordenadas de su lugar (para el mapa) | todos / ADMIN, CARGADOR |
 | GET / POST | `/ofertas/{id}/salones` | Salones de la oferta | todos / ADMIN, CARGADOR |
 | PUT / DELETE | `/salones/{id}` | Modifica / baja lógica | ADMIN, CARGADOR |
 | GET / PUT | `/salones/{id}/caracteristicas` | Características del salón | todos / ADMIN, CARGADOR |
