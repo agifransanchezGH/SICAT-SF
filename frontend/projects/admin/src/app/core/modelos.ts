@@ -163,6 +163,8 @@ export interface Parada {
   orden: number;
   establecimientoId: number;
   establecimiento: string;
+  /** Del lugar del establecimiento; null si no tiene (la parada no se puede marcar en el mapa). */
+  coordenadas: Coordenadas | null;
 }
 
 export interface Salon {
