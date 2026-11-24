@@ -7,7 +7,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Title } from '@angular/platform-browser';
 import { Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
-import { Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario, SicatMapa, enlaceDe, iconoPin, nombreLegible } from 'shared';
+import { COLOR_CIRCUITO, Caracteristica, DIAS_SEMANA, EstablecimientoFicha, Horario, SicatMapa, enlaceDe, escapar, iconoPin, iconoParada, nombreLegible } from 'shared';
 
 import { ApiPublicaService } from '../core/api-publica.service';
 
@@ -316,19 +316,39 @@ export class FichaPage {
     });
   }
 
-  /** Marca el establecimiento y, si alguna oferta es un circuito con trazado, lo dibuja. */
+  /** Marca el establecimiento y, si alguna oferta es un circuito, dibuja su recorrido y sus paradas numeradas. */
   protected ubicar(m: L.Map): void {
     const f = this.ficha();
-    if (!f?.coordenadas) {
+    if (!f) {
       return;
     }
-    L.marker([f.coordenadas.lat, f.coordenadas.lng], { icon: iconoPin(), title: nombreLegible(f.nombre), alt: nombreLegible(f.nombre) }).addTo(m);
-    const trazados = (f.ofertas ?? [])
-      .map((o) => o.detalle?.circuito?.trazado)
-      .filter((t): t is GeoJSON.LineString => !!t);
-    if (trazados.length) {
-      const capa = L.geoJSON(trazados, { style: { color: '#3f6a2e', weight: 4 } }).addTo(m);
-      m.fitBounds(capa.getBounds().extend([f.coordenadas.lat, f.coordenadas.lng]), { padding: [20, 20] });
+    const capa = L.featureGroup().addTo(m);
+    if (f.coordenadas) {
+      L.marker([f.coordenadas.lat, f.coordenadas.lng], { icon: iconoPin(), title: nombreLegible(f.nombre), alt: nombreLegible(f.nombre) }).addTo(capa);
+    }
+    let hayCircuito = false;
+    for (const o of f.ofertas ?? []) {
+      const c = o.detalle?.circuito;
+      if (!c) {
+        continue;
+      }
+      if (c.trazado) {
+        L.geoJSON(c.trazado as GeoJSON.LineString, { style: { color: COLOR_CIRCUITO, weight: 4 } }).addTo(capa);
+        hayCircuito = true;
+      }
+      (c.paradas ?? []).forEach((p, i) => {
+        if (p.coordenadas) {
+          const nombre = nombreLegible(p.nombre);
+          L.marker([p.coordenadas.lat, p.coordenadas.lng], { icon: iconoParada(i + 1), title: `${i + 1}. ${nombre}`, alt: `Parada ${i + 1}: ${nombre}` })
+            .bindTooltip(`${i + 1}. ${escapar(nombre)}`)
+            .addTo(capa);
+          hayCircuito = true;
+        }
+      });
+    }
+    // Con un circuito se encuadra todo el recorrido y sus paradas; si no, el mapa queda centrado en el establecimiento.
+    if (hayCircuito) {
+      m.fitBounds(capa.getBounds(), { padding: [24, 24] });
     }
   }
 

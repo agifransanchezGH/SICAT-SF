@@ -157,6 +157,9 @@ class EndpointsPublicosTest extends PruebaPublica {
                 .andExpect(jsonPath("$.features.length()").value(1))
                 .andExpect(jsonPath("$.features[0].geometry.type").value("LineString"))
                 .andExpect(jsonPath("$.features[0].properties.establecimientoId").value(106))
-                .andExpect(jsonPath("$.features[0].properties.paradas.length()").value(2));
+                .andExpect(jsonPath("$.features[0].properties.paradas.length()").value(2))
+                .andExpect(jsonPath("$.features[0].properties.paradas[0].establecimientoId").value(100))
+                .andExpect(jsonPath("$.features[0].properties.paradas[0].lat").value(-31.63))
+                .andExpect(jsonPath("$.features[0].properties.paradas[0].lng").value(-60.7));
     }
 }

@@ -71,7 +71,7 @@ public class MapaPublicoService {
         return coleccion;
     }
 
-    /** Un LineString por circuito publicado con trazado. Propiedades: id (oferta), establecimiento, duración, paradas. */
+    /** Un LineString por circuito publicado con trazado. Propiedades: id (oferta), establecimiento, duración, paradas (con lat/lng si las tienen). */
     @Cacheable("circuitos")
     public ObjectNode circuitos() {
         List<CircuitoPublico> lista = circuitos.findAll(Sort.by("idOferta")).stream()
@@ -105,6 +105,11 @@ public class MapaPublicoService {
                 pn.put("orden", p.getOrden());
                 pn.put("establecimientoId", p.getIdEstablecimiento());
                 pn.put("nombre", p.getNombre());
+                // Para marcar la parada en el mapa (la vista ya publica la ubicación del establecimiento).
+                if (p.getLat() != null && p.getLng() != null) {
+                    pn.put("lat", p.getLat());
+                    pn.put("lng", p.getLng());
+                }
             });
         }
         return coleccion;
