@@ -12,28 +12,10 @@ import { Confirmar } from '../core/confirmar';
 import { Circuito, Establecimiento, Parada } from '../core/modelos';
 import { OpcionRemota, SelectorRemoto } from '../core/selector-remoto';
 import * as L from 'leaflet';
-import { SicatMapa, escapar } from 'shared';
+import { COLOR_CIRCUITO, SicatMapa, escapar, iconoParada } from 'shared';
 import { avisarSiHayCambios } from '../core/cambios-pendientes';
 
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
-
-/** Camalote (ADR 0016): el color de los circuitos. Leaflet necesita el valor, no la variable CSS. */
-const COLOR_RECORRIDO = '#3f6a2e';
-/** Río: las paradas, numeradas como en la lista. */
-const COLOR_PARADA = '#1d5c63';
-
-/** Marcador numerado de una parada: el mismo número que tiene en la lista. */
-function iconoParada(n: number): L.DivIcon {
-  return L.divIcon({
-    className: 'sicat-parada',
-    html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;
-      background:${COLOR_PARADA};color:#fff;font:600 12px/1 Archivo,system-ui,sans-serif;border:2px solid #fff;
-      box-shadow:0 1px 4px rgb(0 0 0 / 40%)">${n}</span>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    tooltipAnchor: [12, 0],
-  });
-}
 
 /**
  * Circuito turístico: punto de partida, duración y paradas (establecimientos en orden). Las paradas se marcan
@@ -117,8 +99,8 @@ function iconoParada(n: number): L.DivIcon {
     .mapa { height: 380px; border-radius: 12px; overflow: hidden; border: 1px solid var(--sicat-borde); }
     .leyenda { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; font-size: 13px; }
     .muestra-parada {
-      display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%;
-      background: var(--sicat-rio); color: #fff; font-size: 11px; font-weight: 600;
+      display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 5px;
+      background: var(--sicat-ok); color: #fff; font-size: 11px; font-weight: 600;
     }
     .leyenda .ayuda { flex-basis: 100%; }
     .muestra-recorrido { display: inline-block; width: 22px; height: 4px; border-radius: 2px; background: var(--sicat-ok); margin-left: 12px; }
@@ -131,8 +113,8 @@ function iconoParada(n: number): L.DivIcon {
       min-height: 48px; padding: 2px 0; border-bottom: 1px solid var(--sicat-borde);
     }
     .numero {
-      display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
-      background: var(--sicat-rio); color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+      display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px;
+      background: var(--sicat-ok); color: #fff; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
     }
     .nombre { overflow-wrap: anywhere; }
     .sin-ubicacion { display: block; font-size: 12.5px; color: var(--sicat-alerta); }
@@ -179,7 +161,7 @@ export class CircuitoForm implements OnInit {
   protected alListo(m: L.Map): void {
     const t = this.circuito()?.trazado as GeoJSON.LineString | null | undefined;
     this.vertices.set((t?.coordinates ?? []).map(([lng, lat]) => [lat, lng] as L.LatLngTuple));
-    this.linea = L.polyline([], { color: COLOR_RECORRIDO, weight: 4 }).addTo(m);
+    this.linea = L.polyline([], { color: COLOR_CIRCUITO, weight: 4 }).addTo(m);
     this.puntosLinea.addTo(m);
     this.capaParadas.addTo(m);
     this.redibujar();
@@ -264,8 +246,8 @@ export class CircuitoForm implements OnInit {
     v.forEach((p, i) =>
       L.circleMarker(p, {
         radius: i === 0 ? 7 : 4,
-        color: COLOR_RECORRIDO,
-        fillColor: i === 0 ? COLOR_RECORRIDO : '#fff',
+        color: COLOR_CIRCUITO,
+        fillColor: i === 0 ? COLOR_CIRCUITO : '#fff',
         fillOpacity: 1,
         weight: 2,
         interactive: false,

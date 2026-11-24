@@ -6,8 +6,8 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import * as L from 'leaflet';
-import { EMPTY, catchError, combineLatest, filter, switchMap } from 'rxjs';
-import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, nombreLegible, popupDeGrupo } from 'shared';
+import { EMPTY, catchError, combineLatest, filter, map, switchMap } from 'rxjs';
+import { COLOR_CIRCUITO, SicatMapa, agruparPorPunto, escapar, iconoGrupo, iconoParada, nombreLegible, popupDeGrupo } from 'shared';
 import { toObservable } from '@angular/core/rxjs-interop';
 
 import { ApiPublicaService } from '../core/api-publica.service';
@@ -55,23 +55,34 @@ export class MapaPage {
   private readonly mapa = signal<L.Map | null>(null);
   private readonly puntos = L.featureGroup();
   private readonly lineas = L.featureGroup();
+  /** Paradas de los circuitos que aparecen en la búsqueda: numeradas, para ver todo el recorrido de una ruta. */
+  private readonly paradas = L.featureGroup();
+  private circuitos: GeoJSON.FeatureCollection<GeoJSON.LineString> | null = null;
+  /** Lo último que devolvió la búsqueda (ids de establecimientos) y si había algún filtro aplicado. */
+  private resultado: { ids: Set<unknown>; filtrado: boolean } | null = null;
   private primeraVez = true;
 
   constructor() {
     inject(Title).setTitle('Mapa de lugares, Santa Fe');
     combineLatest([toObservable(this.mapa).pipe(filter((m): m is L.Map => m !== null)), this.route.queryParamMap])
       .pipe(
-        switchMap(([, p]) =>
-          this.api.mapa({ q: p.get('q'), categoria: p.get('categoria'), localidad: p.get('localidad') }).pipe(catchError(() => EMPTY)),
-        ),
+        switchMap(([, p]) => {
+          const filtros = { q: p.get('q'), categoria: p.get('categoria'), localidad: p.get('localidad') };
+          const filtrado = Object.values(filtros).some((v) => !!v);
+          return this.api.mapa(filtros).pipe(map((geo) => ({ geo, filtrado })), catchError(() => EMPTY));
+        }),
         takeUntilDestroyed(this.destroy),
       )
-      .subscribe((geo) => this.dibujarPuntos(geo));
+      .subscribe(({ geo, filtrado }) => {
+        this.resultado = { ids: new Set(geo.features.map((f) => f.properties?.['id'])), filtrado };
+        this.dibujarPuntos(geo);
+      });
   }
 
   protected alListo(m: L.Map): void {
     this.puntos.addTo(m);
     this.lineas.addTo(m);
+    this.paradas.addTo(m);
     m.on('popupopen', (e: L.PopupEvent) => {
       // Los enlaces del popup navegan con el router (sin recargar la página).
       e.popup.getElement()?.querySelectorAll<HTMLAnchorElement>('a[data-id]').forEach((a) =>
@@ -84,7 +95,7 @@ export class MapaPage {
     this.mapa.set(m);
     this.api.circuitos().pipe(catchError(() => EMPTY), takeUntilDestroyed(this.destroy)).subscribe((geo) => {
       L.geoJSON(geo, {
-        style: { color: '#3f6a2e', weight: 4, opacity: 0.85 },
+        style: { color: COLOR_CIRCUITO, weight: 4, opacity: 0.85 },
         onEachFeature: (f, capa) => {
           const p = f.properties ?? {};
           const paradas = (p['paradas'] ?? []) as { nombre: string }[];
@@ -96,6 +107,8 @@ export class MapaPage {
         },
       }).addTo(this.lineas);
       this.hayCircuitos.set(geo.features.length > 0);
+      this.circuitos = geo;
+      this.marcarParadas(true);
     });
   }
 
@@ -105,8 +118,10 @@ export class MapaPage {
     if (m) {
       if (ver) {
         this.lineas.addTo(m);
+        this.paradas.addTo(m);
       } else {
         this.lineas.remove();
+        this.paradas.remove();
       }
     }
   }
@@ -138,5 +153,41 @@ export class MapaPage {
       m.fitBounds(this.puntos.getBounds(), { padding: [40, 40], maxZoom: this.primeraVez ? 15 : 16 });
     }
     this.primeraVez = false;
+    this.marcarParadas(true);
+  }
+
+  /**
+   * Cuando la búsqueda encuentra un circuito (p. ej. "ruta del liso"), marca sus paradas numeradas y encuadra el
+   * recorrido completo, para ver todos los lugares que lo forman. Sin filtros no se marcan: serían demasiados.
+   */
+  private marcarParadas(encuadrar: boolean): void {
+    const m = this.mapa();
+    this.paradas.clearLayers();
+    if (!m || !this.circuitos || !this.resultado?.filtrado) {
+      return;
+    }
+    const encontrados = this.circuitos.features.filter((f) => this.resultado!.ids.has(f.properties?.['establecimientoId']));
+    for (const f of encontrados) {
+      L.geoJSON(f, { style: { color: COLOR_CIRCUITO, weight: 5 } }).addTo(this.paradas);
+      const lista = (f.properties?.['paradas'] ?? []) as { establecimientoId: number; nombre: string; lat?: number; lng?: number }[];
+      lista.forEach((p, i) => {
+        if (p.lat == null || p.lng == null) {
+          return;
+        }
+        const nombre = nombreLegible(p.nombre);
+        L.marker([p.lat, p.lng], { icon: iconoParada(i + 1), title: `${i + 1}. ${nombre}`, alt: `Parada ${i + 1}: ${nombre}` })
+          .bindPopup(
+            `<div style="color:#52646a;font-size:12px">Parada ${i + 1}</div><strong>${escapar(nombre)}</strong>` +
+              `<div style="margin-top:6px"><a href="/establecimientos/${escapar(p.establecimientoId)}" data-id="${escapar(p.establecimientoId)}">Ver ficha</a></div>`,
+          )
+          .addTo(this.paradas);
+      });
+    }
+    if (encuadrar && encontrados.length && this.verCircuitos()) {
+      m.fitBounds(this.puntos.getBounds().extend(this.paradas.getBounds()), { padding: [40, 40], maxZoom: 16 });
+    }
+    if (!this.verCircuitos()) {
+      this.paradas.remove();
+    }
   }
 }

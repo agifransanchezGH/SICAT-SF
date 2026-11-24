@@ -113,3 +113,23 @@ export function popupDeGrupo(bloques: string[]): string {
     bloques.map((b, i) => `<div style="${i ? 'border-top:1px solid #ddd;margin-top:6px;padding-top:6px' : ''}">${b}</div>`).join('') +
     `</div>`;
 }
+
+/** Camalote (ADR 0016): el color de los circuitos y sus paradas. Leaflet necesita el valor, no la variable CSS. */
+export const COLOR_CIRCUITO = '#3f6a2e';
+
+/**
+ * Parada de un circuito con su número de orden. Cuadrada y en el verde del recorrido, para no confundirla con el
+ * círculo de "varios establecimientos en el mismo punto".
+ */
+export function iconoParada(orden: number): L.DivIcon {
+  return L.divIcon({
+    className: 'sicat-parada',
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;
+      background:${COLOR_CIRCUITO};border:2px solid #fff;box-sizing:border-box;color:#fff;font:600 12px/1 Archivo,sans-serif;
+      box-shadow:0 1px 4px rgb(0 0 0 / 40%)">${orden}</span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12],
+    tooltipAnchor: [12, 0],
+  });
+}
