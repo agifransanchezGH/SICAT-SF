@@ -17,6 +17,7 @@ import { Confirmar } from '../core/confirmar';
 import { EstadoChip } from '../core/estado';
 import { Oferente } from '../core/modelos';
 import { OferenteDialog } from './oferente-dialog';
+import { HistorialNavegacion } from '../core/navegacion';
 
 @Component({
   selector: 'app-oferente-page',
@@ -25,7 +26,7 @@ import { OferenteDialog } from './oferente-dialog';
     <section class="pagina">
       @if (oferente(); as o) {
         <div class="encabezado">
-          <a mat-icon-button routerLink="/oferentes" aria-label="Volver"><mat-icon>arrow_back</mat-icon></a>
+          <button mat-icon-button type="button" aria-label="Volver" (click)="irAtras()"><mat-icon>arrow_back</mat-icon></button>
           <h1>{{ o.nombre }} @if (!o.activo) { <app-estado valor="inactivo" /> }</h1>
           @if (puedeEditar) {
             <button mat-stroked-button (click)="editar()"><mat-icon>edit</mat-icon> Editar</button>
@@ -88,6 +89,13 @@ import { OferenteDialog } from './oferente-dialog';
   `,
 })
 export class OferentePage {
+  private readonly historial = inject(HistorialNavegacion);
+
+  /** A la página de la que se vino; si se entró directo, a /oferentes. */
+  protected irAtras(): void {
+    this.historial.volver('/oferentes');
+  }
+
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly confirmar = inject(Confirmar);

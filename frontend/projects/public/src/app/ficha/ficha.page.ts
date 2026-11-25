@@ -239,7 +239,9 @@ export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; 
     .visita .chip { margin-left: 8px; }
     .paradas { margin: 0; padding-left: 22px; }
     .paradas li { padding: 2px 0; }
-    .lateral { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+    /* Columna quieta en su lugar: baja con la página, sin quedar pegada ni desplazarse por dentro. */
+    .lateral { display: flex; flex-direction: column; gap: 16px; }
+    .lateral > * { flex: none; }
     .panel { background: var(--mat-sys-surface); border: 1px solid var(--sicat-borde); border-radius: 8px; overflow: hidden; }
     .bloque-lateral { padding: 18px 20px 20px; }
     .panel .bloque-lateral + .bloque-lateral { border-top: 1px solid var(--sicat-borde); }
@@ -254,7 +256,7 @@ export function horariosPorDia(horarios: Horario[] | undefined): { dia: string; 
     .vacio p { color: var(--sicat-tinta); font-size: 17px; }
     @media (max-width: 900px) {
       .columnas { grid-template-columns: 1fr; gap: 24px; }
-      .lateral { position: static; order: -1; }
+      .lateral { order: -1; }
     }
   `,
 })

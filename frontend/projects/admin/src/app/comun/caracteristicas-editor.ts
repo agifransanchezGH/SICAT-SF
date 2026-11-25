@@ -77,18 +77,6 @@ const ANCHO_PANEL = 900;
             </button>
           }
         </div>
-        @if (elegidas().length) {
-          <ul class="fichas" aria-label="Características seleccionadas">
-            @for (c of elegidas(); track c.id) {
-              <li class="ficha">
-                <span>{{ c.nombre }}</span>
-                @if (editable()) {
-                  <button type="button" class="quitar" [attr.aria-label]="'Quitar ' + c.nombre" (click)="marcar(c, false)">×</button>
-                }
-              </li>
-            }
-          </ul>
-        }
       </div>
 
       <div class="cuerpo" [class.con-panel]="modoPanel() && !filtrando()">
@@ -173,12 +161,6 @@ const ANCHO_PANEL = 900;
     .buscador input { flex: 1; min-width: 0; border: 0; outline: 0; font: inherit; font-size: 16px; background: transparent; color: var(--sicat-tinta); }
     .buscador input::-webkit-search-cancel-button { display: none; }
     .contador { font-size: 14px; color: var(--sicat-texto-suave); font-variant-numeric: tabular-nums; }
-    .fichas { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; max-height: 92px; overflow-y: auto; }
-    .ficha { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 10px; border-radius: 999px;
-             background: var(--sicat-rio-claro); color: var(--sicat-rio); font-size: 13px; font-weight: 600; }
-    .ficha span { padding: 4px 0; }
-    .quitar { width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; }
-    .quitar:hover { background: rgb(29 92 99 / 14%); }
 
     /* Panel de grupos (ancho) */
     .cuerpo.con-panel { display: grid; grid-template-columns: 260px minmax(0, 1fr); align-items: start; }
@@ -221,8 +203,6 @@ const ANCHO_PANEL = 900;
       .buscador { flex-basis: 100%; max-width: none; }
       .espacio { display: none; }
       .fila-cabecera button[mat-flat-button] { margin-left: auto; }
-      .fichas { flex-wrap: nowrap; overflow-x: auto; max-height: none; margin-top: 8px; padding-bottom: 2px; }
-      .ficha { flex: none; }
       .opciones { padding: 4px 12px 12px; }
     }
   `,

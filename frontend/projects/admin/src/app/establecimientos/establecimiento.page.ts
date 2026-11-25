@@ -27,6 +27,7 @@ import { OfertasLista } from './ofertas-lista';
 import { PublicacionPanel } from './publicacion-panel';
 import { CambiosPendientes } from '../core/cambios-pendientes';
 import { ReferentesEditor } from './referentes-editor';
+import { HistorialNavegacion } from '../core/navegacion';
 
 const PESTANIAS = ['datos', 'publicacion', 'ofertas', 'contactos', 'caracteristicas', 'referentes', 'distinciones', 'historial'];
 
@@ -40,7 +41,7 @@ const PESTANIAS = ['datos', 'publicacion', 'ofertas', 'contactos', 'caracteristi
   template: `
     <section class="pagina">
       <div class="encabezado">
-        <a mat-icon-button [routerLink]="volver().ruta" [queryParams]="volver().queryParams" aria-label="Volver al listado"><mat-icon>arrow_back</mat-icon></a>
+        <button mat-icon-button type="button" aria-label="Volver" (click)="irAtras()"><mat-icon>arrow_back</mat-icon></button>
         <h1>
           {{ e()?.nombre ?? 'Establecimiento' }}
           @if (e(); as est) {
@@ -172,7 +173,21 @@ export class EstablecimientoPage {
   protected readonly nav = inject(NavegacionCola);
   protected readonly moviendo = signal(false);
   /** Vuelve al listado de la cola, con sus filtros; si no hay cola, al listado (que recuerda los últimos filtros). */
-  protected readonly volver = () => this.nav.cola()?.volver ?? { ruta: '/establecimientos', queryParams: {} };
+  private readonly historial = inject(HistorialNavegacion);
+
+  /**
+   * Flecha de volver: a la página de la que se vino (mapa, oferente, lugares…). Si se viene recorriendo una cola
+   * con Anterior/Siguiente (la página anterior es otra ficha de la cola), al listado de esa cola con sus filtros.
+   */
+  protected irAtras(): void {
+    const cola = this.nav.cola()?.volver;
+    const anterior = this.historial.anterior();
+    if (cola && this.nav.posicion(this.id()) && (!anterior || /^\/establecimientos\/\d+/.test(anterior))) {
+      this.router.navigate([cola.ruta], { queryParams: cola.queryParams });
+    } else {
+      this.historial.volver('/establecimientos');
+    }
+  }
 
   private readonly cambios = inject(CambiosPendientes);
   /** "Contactos •" si esa pestaña tiene cambios sin guardar. */
