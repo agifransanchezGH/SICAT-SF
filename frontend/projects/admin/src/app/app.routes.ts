@@ -11,7 +11,8 @@ export const routes: Routes = [
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'establecimientos' },
+      { path: '', pathMatch: 'full', redirectTo: 'inicio' },
+      { path: 'inicio', loadComponent: () => import('./inicio/inicio.page').then((m) => m.InicioPage) },
       {
         path: 'establecimientos',
         loadComponent: () => import('./establecimientos/establecimientos.page').then((m) => m.EstablecimientosPage),

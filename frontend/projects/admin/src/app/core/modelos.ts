@@ -340,3 +340,20 @@ export function aplanarCategorias(nodos: CategoriaNodo[], prefijo = ''): { id: n
     return [{ id: n.id, nombre, activo: n.activo }, ...aplanarCategorias(n.hijos ?? [], nombre)];
   });
 }
+
+/** GET /estadisticas: cifras del tablero de inicio. */
+export interface CategoriaEstadistica {
+  id: number;
+  nombre: string;
+  establecimientos: number;
+  subcategorias: CategoriaEstadistica[];
+}
+
+export interface Estadisticas {
+  establecimientos: { activos: number; borradores: number; publicados: number; ocultos: number };
+  categorias: CategoriaEstadistica[];
+  oferentes: number;
+  ofertasActivas: number;
+  circuitos: number;
+  pendientes: { ubicacionesARevisar: number; posiblesDuplicados: number; listosParaPublicar: number; contactosARevisar: number };
+}
