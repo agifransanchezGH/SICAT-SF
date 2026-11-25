@@ -121,6 +121,51 @@ class DuplicadosTest extends PruebaAbm {
     }
 
     @Test
+    void deTresSoloDosSonDuplicados_elNoMarcadoNoSeTocaYNoVuelveAAparecer() throws Exception {
+        String nombre = unico("Parrilla Sucursal");
+        String sufijo = nombre.substring(nombre.lastIndexOf(' ') + 1);
+        long oferente = crearOferente();
+        long queda = crearConNombre(oferente, null, nombre);
+        long repetido = crearConNombre(oferente, null, nombre);
+        long sucursal = crearConNombre(oferente, null, nombre);
+        long instagram = id(post_("/catalogos/tipo-canal", "{\"nombre\":\"%s\"}".formatted(unico("Instagram")), 201));
+        put_("/establecimientos/" + repetido + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"@repetido\",\"esPublico\":true}]".formatted(instagram), 200);
+        put_("/establecimientos/" + sucursal + "/contactos",
+                "[{\"tipoCanalId\":%d,\"valor\":\"@sucursal\",\"esPublico\":true}]".formatted(instagram), 200);
+        Map<String, Object> g = grupo(sufijo);
+        long antes = contadorDuplicados();
+        String resolucion = "{\"conservarId\":%d,\"grupo\":%s,\"marcados\":%s,\"copiarContactos\":true}";
+
+        // validaciones de los marcados: uno solo (400 por @Size), uno ajeno, o sin el que queda (422)
+        post_("/establecimientos/duplicados/resolucion", resolucion.formatted(queda, cuerpoGrupo(g), "[" + queda + "]"), 400);
+        post_("/establecimientos/duplicados/resolucion",
+                resolucion.formatted(queda, cuerpoGrupo(g), "[%d,%d]".formatted(queda, 999_999_999L)), 422);
+        post_("/establecimientos/duplicados/resolucion",
+                resolucion.formatted(queda, cuerpoGrupo(g), "[%d,%d]".formatted(repetido, sucursal)), 422);
+
+        // la vista previa solo mira a los marcados: no ofrece el contacto de la sucursal
+        String previa = post_("/establecimientos/duplicados/resolucion/previa",
+                resolucion.formatted(queda, cuerpoGrupo(g), "[%d,%d]".formatted(queda, repetido)), 200);
+        assertThat((List<Integer>) leer(previa, "$.origenes[*].id")).containsExactly((int) repetido);
+        assertThat((Integer) leer(previa, "$.contactos")).isEqualTo(1);
+
+        String r = post_("/establecimientos/duplicados/resolucion",
+                resolucion.formatted(queda, cuerpoGrupo(g), "[%d,%d]".formatted(queda, repetido)), 200);
+        assertThat((List<Integer>) leer(r, "$.bajas")).containsExactly((int) repetido);
+        assertThat((Integer) leer(r, "$.contactosCopiados")).isEqualTo(1);
+
+        assertThat((Boolean) leer(get_("/establecimientos/" + repetido, 200), "$.activo")).isFalse();
+        // el no marcado no se toca: sigue activo y con su contacto
+        assertThat((Boolean) leer(get_("/establecimientos/" + sucursal, 200), "$.activo")).isTrue();
+        assertThat((List<String>) leer(get_("/establecimientos/" + sucursal + "/contactos", 200), "$[*].valor"))
+                .containsExactly("@sucursal");
+        // y no vuelve a aparecer como duplicado del que quedó
+        assertThat(grupo(sufijo)).isNull();
+        assertThat(contadorDuplicados()).isEqualTo(antes - 1);
+    }
+
+    @Test
     void permisosYValidaciones() throws Exception {
         String consulta = bearerDe("CONSULTA");
         pedir(get(API + "/establecimientos/duplicados"), consulta, 403);

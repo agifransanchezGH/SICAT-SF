@@ -14,6 +14,7 @@ import { filter, fromEvent, map } from 'rxjs';
 import { AuthService, Rol } from '../core/auth.service';
 import { Contadores } from '../core/contadores';
 import { ContadoresPanel } from '../core/modelos';
+import { HistorialNavegacion } from '../core/navegacion';
 
 /** Pendiente de trabajo que se muestra junto a un ítem: cuántos hay y qué son (para lectores de pantalla). */
 interface Pendiente {
@@ -169,7 +170,9 @@ function leerPreferencia(): boolean {
     /* En las colas, solo contorno: el ocre aclarado da 8,4:1 sobre tinta y el borde 3,4:1 */
     .lateral a.cola .contador { background: transparent; color: color-mix(in srgb, var(--sicat-limo) 55%, white); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sicat-limo) 80%, var(--sicat-tinta)); }
     .separador { height: 1px; margin: 10px 12px; background: rgb(255 255 255 / 14%); }
-    .lateral ::ng-deep .mat-drawer-inner-container { display: flex; flex-direction: column; }
+    /* El menú se sigue desplazando con la rueda, el táctil o el teclado, pero sin mostrar la barra. */
+    .lateral ::ng-deep .mat-drawer-inner-container { display: flex; flex-direction: column; scrollbar-width: none; }
+    .lateral ::ng-deep .mat-drawer-inner-container::-webkit-scrollbar { display: none; }
     .lateral mat-nav-list { flex: 1; }
     /* Botón al pie del menú, con texto: la forma evidente de contraerlo (y de volver a abrirlo) */
     .contraer {
@@ -208,9 +211,9 @@ export class Shell {
     { initialValue: false },
   );
 
-  /** Primero el flujo de trabajo con lo importado (importar → ubicar → publicar → depurar); después, el resto. */
+  /** Inicio (las cifras); después el flujo de trabajo (ubicar → publicar → depurar); después, el resto. La importación va con la administración. */
   private readonly items: ItemMenu[] = [
-    { ruta: 'importacion', texto: 'Importación', icono: 'upload_file', roles: ['ADMIN'] },
+    { ruta: 'inicio', texto: 'Inicio', icono: 'dashboard', separadorDespues: true },
     {
       ruta: 'lugares', texto: 'Lugares y ubicaciones', icono: 'place',
       pendiente: { contador: 'ubicacionesARevisar', que: 'ubicaciones a revisar' },
@@ -237,6 +240,7 @@ export class Shell {
     { ruta: 'catalogos', texto: 'Catálogos', icono: 'list_alt' },
     { ruta: 'categorias', texto: 'Categorías', icono: 'account_tree' },
     { ruta: 'usuarios', texto: 'Usuarios', icono: 'group', roles: ['ADMIN'] },
+    { ruta: 'importacion', texto: 'Importación', icono: 'upload_file', roles: ['ADMIN'] },
     { ruta: 'auditoria', texto: 'Auditoría', icono: 'history', roles: ['ADMIN'] },
   ];
 
@@ -245,6 +249,8 @@ export class Shell {
   );
 
   private readonly contadores = inject(Contadores);
+  /** Se crea con el panel, para registrar desde la primera página (lo usan las flechas de volver). */
+  private readonly historial = inject(HistorialNavegacion);
 
   /** Menú contraído a íconos (en pantallas anchas). Se recuerda en este navegador. */
   protected readonly compacto = signal(leerPreferencia());

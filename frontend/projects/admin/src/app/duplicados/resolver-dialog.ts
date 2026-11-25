@@ -25,6 +25,8 @@ export interface PreviaResolucion {
 export interface DatosResolver {
   grupo: GrupoDuplicados;
   queda: DuplicadoItem;
+  /** Los que son duplicados entre sí (incluido el que queda); los demás del grupo no se tocan. */
+  marcados: DuplicadoItem[];
 }
 
 /** Lo que se eligió en el diálogo (undefined si se canceló). */
@@ -34,8 +36,9 @@ export interface Resolucion {
 }
 
 /**
- * Confirmación de "Quedarme con este": quiénes se dan de baja y, si al que queda le faltan contactos o
- * características de los demás, cuáles se le copiarían (las casillas arrancan tildadas; se copian, no se mueven).
+ * Confirmación de "Quedarme con este": quiénes de los marcados se dan de baja, cuáles no se tocan y, si al que
+ * queda le faltan contactos o características de los otros marcados, cuáles se le copiarían (las casillas arrancan
+ * tildadas; se copian, no se mueven).
  */
 @Component({
   selector: 'app-resolver-dialog',
@@ -51,6 +54,11 @@ export interface Resolucion {
         }
         Se pueden reactivar desde su ficha.
       </p>
+      @if (noMarcados.length === 1) {
+        <p class="suave">El no marcado ({{ idsNoMarcados }}) no se toca: queda como un establecimiento distinto y no vuelve a aparecer como duplicado del que queda.</p>
+      } @else if (noMarcados.length > 1) {
+        <p class="suave">Los {{ noMarcados.length }} no marcados ({{ idsNoMarcados }}) no se tocan: quedan como establecimientos distintos y no vuelven a aparecer como duplicados del que queda.</p>
+      }
 
       @if (cargando()) {
         <mat-progress-bar mode="indeterminate" aria-label="Buscando qué le falta al que queda" />
@@ -107,7 +115,9 @@ export class ResolverDialog {
   private readonly ref = inject(MatDialogRef<ResolverDialog, Resolucion>);
   protected readonly d = inject<DatosResolver>(MAT_DIALOG_DATA);
 
-  protected readonly otros = this.d.grupo.establecimientos.filter((e) => e.id !== this.d.queda.id);
+  protected readonly otros = this.d.marcados.filter((e) => e.id !== this.d.queda.id);
+  protected readonly noMarcados = this.d.grupo.establecimientos.filter((e) => !this.d.marcados.some((m) => m.id === e.id));
+  protected readonly idsNoMarcados = this.noMarcados.map((e) => `#${e.id}`).join(', ');
   protected readonly ids = this.otros.map((e) => `#${e.id}`).join(', ');
   protected readonly publicados = this.otros.filter((e) => e.estadoPublicacion === 'PUBLICADO').length;
   protected readonly previa = signal<PreviaResolucion | null>(null);
@@ -121,6 +131,7 @@ export class ResolverDialog {
       .post<PreviaResolucion>('/establecimientos/duplicados/resolucion/previa', {
         conservarId: this.d.queda.id,
         grupo: { clave: this.d.grupo.clave, integrantes: this.d.grupo.establecimientos.map((e) => e.id) },
+        marcados: this.d.marcados.map((e) => e.id),
       })
       .subscribe({
         next: (p) => {

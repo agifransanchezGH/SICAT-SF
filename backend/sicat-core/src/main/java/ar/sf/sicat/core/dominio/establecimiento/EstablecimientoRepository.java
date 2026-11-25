@@ -80,6 +80,75 @@ public interface EstablecimientoRepository
         long getContactosARevisar();
     }
 
+    /** Cifras del tablero de inicio, en una sola consulta agregada (solo establecimientos y ofertas activos). */
+    @Query(value = "SELECT"
+            + " (SELECT count(*) FROM sicat.establecimiento WHERE activo) AS activos,"
+            + " (SELECT count(*) FROM sicat.establecimiento WHERE activo AND estado_publicacion = 'BORRADOR') AS borradores,"
+            + " (SELECT count(*) FROM sicat.establecimiento WHERE activo AND estado_publicacion = 'PUBLICADO') AS publicados,"
+            + " (SELECT count(*) FROM sicat.establecimiento WHERE activo AND estado_publicacion = 'OCULTO') AS ocultos,"
+            + " (SELECT count(*) FROM sicat.oferente WHERE activo) AS oferentes,"
+            + " (SELECT count(*) FROM sicat.oferta o JOIN sicat.establecimiento e ON e.id_establecimiento = o.id_establecimiento"
+            + "   WHERE o.activo AND e.activo) AS ofertasActivas,"
+            + " (SELECT count(*) FROM sicat.circuito c JOIN sicat.oferta o ON o.id_oferta = c.id_oferta"
+            + "   JOIN sicat.establecimiento e ON e.id_establecimiento = o.id_establecimiento"
+            + "   WHERE o.activo AND e.activo) AS circuitos", nativeQuery = true)
+    ResumenEstadisticas resumenEstadisticas();
+
+    interface ResumenEstadisticas {
+        long getActivos();
+
+        long getBorradores();
+
+        long getPublicados();
+
+        long getOcultos();
+
+        long getOferentes();
+
+        long getOfertasActivas();
+
+        long getCircuitos();
+    }
+
+    /**
+     * Establecimientos activos por categoría activa, con el mismo criterio que el filtro {@code categoria} del listado:
+     * cuenta los que tienen una oferta activa en esa categoría o en una de sus subcategorías, como principal o
+     * adicional (cada establecimiento una vez por categoría).
+     */
+    @Query(value = """
+            WITH RECURSIVE rama AS (
+                SELECT id_categoria AS ancestro, id_categoria AS id FROM sicat.categoria
+                UNION ALL
+                SELECT r.ancestro, c.id_categoria FROM rama r JOIN sicat.categoria c ON c.id_categoria_padre = r.id
+            ), usadas AS (
+                SELECT o.id_establecimiento, o.id_categoria FROM sicat.oferta o
+                JOIN sicat.establecimiento e ON e.id_establecimiento = o.id_establecimiento
+                WHERE o.activo AND e.activo
+                UNION
+                SELECT o.id_establecimiento, oc.id_categoria FROM sicat.oferta o
+                JOIN sicat.oferta_categoria oc ON oc.id_oferta = o.id_oferta
+                JOIN sicat.establecimiento e ON e.id_establecimiento = o.id_establecimiento
+                WHERE o.activo AND e.activo
+            )
+            SELECT c.id_categoria AS id, c.nombre AS nombre, c.id_categoria_padre AS padreId,
+                   count(DISTINCT u.id_establecimiento) AS establecimientos
+            FROM sicat.categoria c
+            LEFT JOIN rama r ON r.ancestro = c.id_categoria
+            LEFT JOIN usadas u ON u.id_categoria = r.id
+            WHERE c.activo
+            GROUP BY c.id_categoria, c.nombre, c.id_categoria_padre""", nativeQuery = true)
+    List<ConteoCategoria> establecimientosPorCategoria();
+
+    interface ConteoCategoria {
+        Long getId();
+
+        String getNombre();
+
+        Long getPadreId();
+
+        long getEstablecimientos();
+    }
+
     boolean existsByLugarId(Long idLugar);
 
     List<Establecimiento> findByLugarId(Long idLugar);

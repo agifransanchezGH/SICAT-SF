@@ -127,7 +127,8 @@ establecimiento_caracteristica
   PK,FK id_caracteristica  -> caracteristica
         cantidad           int NULL
 
-descarte_duplicado            -- grupo de "posibles duplicados" marcado como "no son duplicados" (V12)
+descarte_duplicado            -- grupo de "posibles duplicados" marcado como "no son duplicados" (V12); también lo
+                              -- que resta de un grupo al resolver solo los marcados (los no marcados son distintos)
   PK id_descarte_duplicado
      clave                text   -- nombre normalizado del grupo
      integrantes          text   -- ids ordenados del grupo ("12,40,371"); si el grupo cambia, el descarte deja de valer

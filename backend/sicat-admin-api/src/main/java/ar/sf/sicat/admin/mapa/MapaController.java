@@ -27,7 +27,10 @@ public class MapaController {
     @GetMapping("/establecimientos")
     @PreAuthorize(Roles.LECTURA)
     @Operation(summary = "Establecimientos activos como FeatureCollection de puntos",
-            description = "Incluye borradores y ocultos. Filtros: q, categoria (con subcategorías), estado, localidadId, bbox.")
+            description = "Incluye borradores y ocultos. Filtros: q, categoria (con subcategorías), estado, localidadId, bbox. "
+                    + "Propiedades de cada punto: id, nombre, estadoPublicacion, estadoGeo, lugarId, destacado y "
+                    + "categorias (ids de las categorías de sus ofertas activas, principal y adicionales), para "
+                    + "contar por estado y por categoría en el cliente.")
     public ObjectNode establecimientos(
             @RequestParam(required = false) String q,
             @Parameter(description = "Id de categoría") @RequestParam(required = false) Long categoria,

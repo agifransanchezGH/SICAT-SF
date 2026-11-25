@@ -108,15 +108,16 @@ public class DuplicadosService {
         }
     }
 
-    /** Lo que se le copiaría al que queda: contactos y características de los demás que no tiene. */
+    /** Lo que se le copiaría al que queda: contactos y características de los otros marcados que no tiene. */
     @Transactional(readOnly = true)
-    public PreviaResolucionDto previa(Long conservarId, GrupoSolicitud grupo) {
+    public PreviaResolucionDto previa(Long conservarId, GrupoSolicitud grupo, List<Long> marcados) {
         List<Long> actuales = verificarGrupo(grupo);
         verificarConservar(conservarId, actuales);
-        Copia c = copia(conservarId, actuales);
-        Map<Long, String> nombres = establecimientos.findAllById(actuales).stream()
+        List<Long> duplicados = verificarMarcados(conservarId, marcados, actuales);
+        Copia c = copia(conservarId, duplicados);
+        Map<Long, String> nombres = establecimientos.findAllById(duplicados).stream()
                 .collect(Collectors.toMap(Establecimiento::getId, Establecimiento::getNombre));
-        List<PreviaResolucionDto.Origen> origenes = actuales.stream()
+        List<PreviaResolucionDto.Origen> origenes = duplicados.stream()
                 .filter(id -> !id.equals(conservarId))
                 .map(id -> new PreviaResolucionDto.Origen(id, nombres.get(id),
                         c.contactos().stream().filter(x -> x.getEstablecimiento().getId().equals(id))
@@ -131,17 +132,20 @@ public class DuplicadosService {
 
     /**
      * "Quedarme con este": opcionalmente le copia al que queda los contactos y características que le faltan, y da
-     * de baja a los demás integrantes (un publicado pasa a OCULTO, como cualquier baja). Todo en una transacción y por
-     * JPA (queda auditado): si algo falla, no cambia nada. Se copia en vez de mover: el dado de baja conserva sus datos
-     * por si se lo reactiva.
+     * de baja a los otros marcados (un publicado pasa a OCULTO, como cualquier baja). Los no marcados no se tocan y,
+     * para que no vuelvan a aparecer como duplicados del que quedó, el grupo que resta se registra como "no son
+     * duplicados" (mismo mecanismo que {@link #descartar}: si entra o sale otro con ese nombre, vuelve a aparecer).
+     * Todo en una transacción y por JPA (queda auditado): si algo falla, no cambia nada. Se copia en vez de mover: el
+     * dado de baja conserva sus datos por si se lo reactiva.
      */
     @Transactional
-    public ResolucionResultadoDto quedarseCon(Long conservarId, GrupoSolicitud grupo, boolean copiarContactos,
-                                              boolean copiarCaracteristicas) {
+    public ResolucionResultadoDto quedarseCon(Long conservarId, GrupoSolicitud grupo, List<Long> marcados,
+                                              boolean copiarContactos, boolean copiarCaracteristicas) {
         List<Long> actuales = verificarGrupo(grupo);
         verificarConservar(conservarId, actuales);
+        List<Long> duplicados = verificarMarcados(conservarId, marcados, actuales);
         Establecimiento queda = establecimientos.findById(conservarId).orElseThrow();
-        Copia c = copia(conservarId, actuales);
+        Copia c = copia(conservarId, duplicados);
         int contactosCopiados = 0;
         int caracteristicasCopiadas = 0;
         if (copiarContactos) {
@@ -170,12 +174,42 @@ public class DuplicadosService {
                 caracteristicasCopiadas++;
             }
         }
-        List<Long> bajas = actuales.stream().filter(id -> !id.equals(conservarId)).toList();
+        List<Long> bajas = duplicados.stream().filter(id -> !id.equals(conservarId)).toList();
         establecimientos.findAllById(bajas).forEach(e -> {
             e.setActivo(false);
             PublicacionService.ocultarSiEstaPublicado(e);
         });
+        List<Long> restantes = actuales.stream().filter(id -> !bajas.contains(id)).toList();
+        if (restantes.size() > 1) {
+            String firma = firma(restantes);
+            if (!descartes.existsByClaveAndIntegrantes(grupo.clave(), firma)) {
+                descartes.save(new DescarteDuplicado(grupo.clave(), firma));
+            }
+        }
         return new ResolucionResultadoDto(bajas, contactosCopiados, caracteristicasCopiadas);
+    }
+
+    /**
+     * Los integrantes que son duplicados entre sí. Sin marcados, todos los del grupo (como antes de poder elegir).
+     * Al menos dos, todos del grupo e incluido el que queda.
+     */
+    private static List<Long> verificarMarcados(Long conservarId, List<Long> marcados, List<Long> actuales) {
+        if (marcados == null) {
+            return actuales;
+        }
+        List<Long> distintos = marcados.stream().distinct().toList();
+        if (distintos.size() < 2) {
+            throw new ReglaNegocioException(
+                    "Marcá al menos dos registros: el que queda y por lo menos uno que sea su duplicado");
+        }
+        List<Long> ajenos = distintos.stream().filter(id -> !actuales.contains(id)).toList();
+        if (!ajenos.isEmpty()) {
+            throw new ReglaNegocioException("Estos marcados no son parte del grupo: " + ajenos);
+        }
+        if (!distintos.contains(conservarId)) {
+            throw new ReglaNegocioException("El establecimiento que queda tiene que estar entre los marcados");
+        }
+        return distintos;
     }
 
     /** Contactos y características de los demás que el que queda no tiene, sin repetir entre ellos. */

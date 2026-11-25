@@ -251,6 +251,7 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
 | GET | `/contadores` | Pendientes para el menú: `ubicacionesARevisar`, `listosParaPublicar`, `posiblesDuplicados` (grupos), `contactosARevisar`. Mismos criterios que los filtros de cada pantalla | todos |
+| GET | `/estadisticas` | Tablero de inicio, con consultas agregadas: establecimientos activos por estado de publicación, establecimientos por categoría raíz y sus subcategorías (mismo criterio que el filtro `categoria` del listado), oferentes activos, ofertas activas, circuitos y `pendientes` (los mismos números que `/contadores`) | todos |
 
 ### Oferentes
 | Método | Ruta | Descripción | Rol |
@@ -277,8 +278,8 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 | POST | `/establecimientos/lote/publicar` | `{ ids }` (hasta 500). Publica cada uno en su propia transacción con los mismos requisitos; responde el resultado por id con los `errores` de los rechazados | ADMIN, CARGADOR |
 | GET | `/establecimientos/duplicados` | Grupos de establecimientos activos con el mismo nombre normalizado (primero los de igual dirección), sin los descartados. Cada integrante trae dirección, oferente, contactos, categorías, ofertas activas y estado, para compararlos | ADMIN, CARGADOR |
 | POST | `/establecimientos/duplicados/descartes` | `{ clave, integrantes }`: "no son duplicados". El grupo no vuelve a aparecer mientras tenga esos mismos integrantes (`descarte_duplicado`, V12). 409 si el grupo cambió | ADMIN, CARGADOR |
-| POST | `/establecimientos/duplicados/resolucion/previa` | `{ conservarId, grupo }`. No cambia nada: por cada integrante que se daría de baja, los contactos y características que el que queda no tiene (sin repetir: mismo tipo y valor sin importar formato; teléfonos por dígitos) | ADMIN |
-| POST | `/establecimientos/duplicados/resolucion` | `{ conservarId, grupo, copiarContactos?, copiarCaracteristicas? }`: "quedarme con este". Copia al que queda lo que muestra la vista previa (si se pide) y da de baja a los demás, todo en una transacción (un publicado pasa a `OCULTO`). 409 si el grupo cambió | ADMIN |
+| POST | `/establecimientos/duplicados/resolucion/previa` | `{ conservarId, grupo, marcados? }`. No cambia nada: por cada marcado que se daría de baja, los contactos y características que el que queda no tiene (sin repetir: mismo tipo y valor sin importar formato; teléfonos por dígitos) | ADMIN |
+| POST | `/establecimientos/duplicados/resolucion` | `{ conservarId, grupo, marcados?, copiarContactos?, copiarCaracteristicas? }`: "quedarme con este". `marcados` (mínimo 2, incluido `conservarId`; si no viene, todo el grupo) son los que son duplicados entre sí. Copia al que queda lo que muestra la vista previa (si se pide) y da de baja a los otros marcados, todo en una transacción (un publicado pasa a `OCULTO`). Los no marcados no se tocan y el grupo que resta se registra como "no son duplicados" (`descarte_duplicado`), así no vuelven a aparecer como duplicados del que quedó. 409 si el grupo cambió; 422 si los marcados no son válidos | ADMIN |
 | GET / PUT | `/establecimientos/{id}/contactos` | Canales de contacto (PUT reemplaza) | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/referentes` | Referentes | todos / ADMIN, CARGADOR |
 | GET / PUT | `/establecimientos/{id}/distinciones` | Distinciones con año y URL | todos / ADMIN, CARGADOR |
@@ -321,7 +322,7 @@ Tokens, refresh sin estado y primer ADMIN: ver `docs/decisiones/0005-refresh-tok
 ### Mapa
 | Método | Ruta | Descripción | Rol |
 |---|---|---|---|
-| GET | `/mapa/establecimientos` | GeoJSON (puntos) de los activos, incluidos borradores y ocultos. Filtros `q`, `categoria`, `estado`, `localidadId`, `bbox` | todos |
+| GET | `/mapa/establecimientos` | GeoJSON (puntos) de los activos, incluidos borradores y ocultos. Filtros `q`, `categoria`, `estado`, `localidadId`, `bbox`. Cada punto trae `categorias` (ids de las de sus ofertas activas, principal y adicionales) para contar por estado y por categoría en el mapa | todos |
 | GET | `/mapa/establecimientos/cercanos` | Por `lat`, `lng`, `radioMetros` (máx. 20000) y `limite` (máx. 200); propiedad `distanciaMetros` | todos |
 | GET | `/mapa/circuitos` | Trazados de circuitos (GeoJSON, líneas) con sus paradas | todos |
 

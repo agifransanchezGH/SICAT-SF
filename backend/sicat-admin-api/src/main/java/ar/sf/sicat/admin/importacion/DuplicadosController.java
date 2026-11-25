@@ -55,22 +55,26 @@ public class DuplicadosController {
     @PostMapping("/resolucion/previa")
     @PreAuthorize(Roles.ADMIN)
     @Operation(summary = "Vista previa de \"Quedarme con este\"",
-            description = "No cambia nada. Devuelve, por cada uno que se daría de baja, los contactos y características "
-                    + "que el que queda no tiene (sin repetir: mismo tipo y valor sin importar formato; teléfonos por "
-                    + "sus dígitos). 409 si el grupo cambió.")
+            description = "No cambia nada. Devuelve, por cada marcado que se daría de baja, los contactos y "
+                    + "características que el que queda no tiene (sin repetir: mismo tipo y valor sin importar formato; "
+                    + "teléfonos por sus dígitos). Sin marcados, considera a todo el grupo. 409 si el grupo cambió; 422 "
+                    + "si los marcados no son válidos.")
     public PreviaResolucionDto previa(@Valid @RequestBody ResolucionDuplicadosSolicitud solicitud) {
-        return servicio.previa(solicitud.conservarId(), solicitud.grupo());
+        return servicio.previa(solicitud.conservarId(), solicitud.grupo(), solicitud.marcados());
     }
 
     @PostMapping("/resolucion")
     @PreAuthorize(Roles.ADMIN)
-    @Operation(summary = "\"Quedarme con este\": da de baja a los demás del grupo",
-            description = "Con copiarContactos / copiarCaracteristicas le copia al que queda lo que le falta (lo mismo "
-                    + "que muestra la vista previa) y da de baja a los demás integrantes; todo en una transacción (un "
-                    + "publicado dado de baja pasa a OCULTO). Solo ADMIN, como la baja individual. 409 si el grupo "
-                    + "cambió desde que se cargó la lista.")
+    @Operation(summary = "\"Quedarme con este\": da de baja a los otros marcados del grupo",
+            description = "marcados (opcional; mínimo 2 e incluido conservarId) indica cuáles son duplicados entre sí; "
+                    + "sin marcados son todos. Con copiarContactos / copiarCaracteristicas le copia al que queda lo que "
+                    + "le falta de los marcados (lo mismo que muestra la vista previa) y da de baja a los otros "
+                    + "marcados. Los no marcados no se tocan y el grupo que resta queda como \"no son duplicados\", así "
+                    + "no vuelven a aparecer como duplicados del que quedó. Todo en una transacción (un publicado dado de "
+                    + "baja pasa a OCULTO). Solo ADMIN, como la baja individual. 409 si el grupo cambió desde que se "
+                    + "cargó la lista; 422 si los marcados no son válidos.")
     public ResolucionResultadoDto quedarseCon(@Valid @RequestBody ResolucionDuplicadosSolicitud solicitud) {
-        return servicio.quedarseCon(solicitud.conservarId(), solicitud.grupo(),
+        return servicio.quedarseCon(solicitud.conservarId(), solicitud.grupo(), solicitud.marcados(),
                 Boolean.TRUE.equals(solicitud.copiarContactos()), Boolean.TRUE.equals(solicitud.copiarCaracteristicas()));
     }
 }

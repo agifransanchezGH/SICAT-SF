@@ -20,6 +20,7 @@ import { CircuitoForm } from './circuito-form';
 import { OfertaDatos } from './oferta-datos';
 import { SalonesEditor } from './salones-editor';
 import { VisitasEditor } from './visitas-editor';
+import { HistorialNavegacion } from '../core/navegacion';
 
 type Especializacion = 'alojamiento' | 'circuito' | 'salones' | 'visitas';
 
@@ -41,9 +42,7 @@ const NOMBRES: Record<Especializacion, string> = {
     <section class="pagina">
       @if (oferta(); as o) {
         <div class="encabezado">
-          <a mat-icon-button [routerLink]="['/establecimientos', o.establecimientoId]" [queryParams]="{ pestania: 'ofertas' }" aria-label="Volver">
-            <mat-icon>arrow_back</mat-icon>
-          </a>
+          <button mat-icon-button type="button" aria-label="Volver" (click)="irAtras(o.establecimientoId)"><mat-icon>arrow_back</mat-icon></button>
           <h1>
             {{ o.categoria }}
             @if (!o.activo) { <app-estado valor="inactivo" /> }
@@ -114,6 +113,13 @@ const NOMBRES: Record<Especializacion, string> = {
   `,
 })
 export class OfertaPage {
+  private readonly historial = inject(HistorialNavegacion);
+
+  /** A la página de la que se vino; si se entró directo, a las ofertas de su establecimiento. */
+  protected irAtras(establecimientoId: number): void {
+    this.historial.volver(`/establecimientos/${establecimientoId}?pestania=ofertas`);
+  }
+
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly confirmar = inject(Confirmar);

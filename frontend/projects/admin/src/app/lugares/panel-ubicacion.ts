@@ -31,18 +31,21 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
           <h2 id="panel-ubicacion-titulo">{{ l.nombre }}</h2>
           <app-calidad [calidad]="l.calidad" />
         </header>
-        <p class="direccion">{{ direccion(l) || 'Sin dirección cargada' }}</p>
-        @if (l.calidad?.motivos?.length) {
-          <ul class="motivos">@for (m of l.calidad!.motivos; track m) { <li>{{ m }}</li> }</ul>
-        }
-        @if (l.establecimientos?.length) {
-          <p class="establecimientos">
-            En este lugar:
-            @for (e of l.establecimientos!; track e.id) {
-              <a [routerLink]="['/establecimientos', e.id]">{{ e.nombre }}</a>{{ $last ? '' : ', ' }}
-            }
-          </p>
-        }
+        <!-- Si el panel no entra en la pantalla, esta parte se desplaza y el mapa y los botones quedan a la vista -->
+        <div class="detalle" tabindex="0" aria-label="Detalle de la ubicación">
+          <p class="direccion">{{ direccion(l) || 'Sin dirección cargada' }}</p>
+          @if (l.calidad?.motivos?.length) {
+            <ul class="motivos">@for (m of l.calidad!.motivos; track m) { <li>{{ m }}</li> }</ul>
+          }
+          @if (l.establecimientos?.length) {
+            <p class="establecimientos">
+              En este lugar:
+              @for (e of l.establecimientos!; track e.id) {
+                <a [routerLink]="['/establecimientos', e.id]">{{ e.nombre }}</a>{{ $last ? '' : ', ' }}
+              }
+            </p>
+          }
+        </div>
       }
       <div class="mapa-caja">
         <sicat-mapa class="mapa" [centro]="centroInicial" [zoom]="13" (listo)="alListo($event)" />
@@ -77,15 +80,22 @@ const redondear = (n: number) => Math.round(n * 1e6) / 1e6;
     </section>
   `,
   styles: `
-    :host { display: block; }
-    .panel { display: flex; flex-direction: column; gap: 8px; }
+    /*
+     * El panel ocupa como mucho el alto que le dé su contenedor (en Lugares, el de la ventana): el detalle se
+     * desplaza y el mapa se achica hasta un mínimo antes que los botones, que nunca quedan fuera de la vista.
+     */
+    :host { display: flex; flex-direction: column; min-height: 0; }
+    .panel { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+    .cabecera, .estado-pin, .acciones { flex: none; }
     .cabecera { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .detalle { display: flex; flex-direction: column; gap: 8px; flex: 0 1 auto; min-height: 2.5em; overflow-y: auto; overscroll-behavior: contain; }
+    .detalle:focus-visible { outline: 2px solid var(--sicat-rio); outline-offset: 2px; }
     h2 { margin: 0; font-size: 18px; font-stretch: var(--sicat-ancho-nombre); }
     .direccion { margin: 0; color: var(--sicat-tinta); }
     .motivos { margin: 0; padding-left: 18px; color: var(--sicat-texto-suave); font-size: 13.5px; }
     .establecimientos { margin: 0; font-size: 14px; }
-    .mapa-caja { position: relative; }
-    .mapa { height: clamp(280px, 52vh, 520px); border-radius: 12px; overflow: hidden; border: 1px solid var(--sicat-borde); }
+    .mapa-caja { position: relative; flex: 0 1 clamp(280px, 52vh, 520px); min-height: 220px; display: flex; }
+    .mapa { flex: 1; min-height: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--sicat-borde); }
     .aviso-mapa {
       position: absolute; left: 12px; right: 12px; bottom: 12px; margin: 0; padding: 8px 12px; z-index: 500;
       border-radius: 8px; background: var(--mat-sys-surface); border: 1px solid var(--sicat-borde); font-size: 14px;

@@ -4,13 +4,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { RouterLink } from '@angular/router';
 import { normalizar, similitud } from 'shared';
 
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
 import { Confirmar } from '../core/confirmar';
+import { HistorialNavegacion } from '../core/navegacion';
 
 interface Uso {
   id: number;
@@ -53,11 +53,11 @@ function parecidas(a: string, b: string): boolean {
  */
 @Component({
   selector: 'app-limpiar-caracteristicas-page',
-  imports: [RouterLink, MatButtonModule, MatIconModule, MatProgressBarModule, MatSlideToggleModule, MatTooltipModule],
+  imports: [MatButtonModule, MatIconModule, MatProgressBarModule, MatSlideToggleModule, MatTooltipModule],
   template: `
     <section class="pagina">
       <div class="encabezado">
-        <a mat-icon-button routerLink="/catalogos" aria-label="Volver a Catálogos"><mat-icon>arrow_back</mat-icon></a>
+        <button mat-icon-button type="button" aria-label="Volver" (click)="irAtras()"><mat-icon>arrow_back</mat-icon></button>
         <h1>Limpiar características</h1>
       </div>
       <p class="suave intro">
@@ -211,6 +211,13 @@ function parecidas(a: string, b: string): boolean {
   `,
 })
 export class LimpiarCaracteristicasPage {
+  private readonly historial = inject(HistorialNavegacion);
+
+  /** A la página de la que se vino; si se entró directo, a /catalogos. */
+  protected irAtras(): void {
+    this.historial.volver('/catalogos');
+  }
+
   private readonly api = inject(Api);
   private readonly avisos = inject(Avisos);
   private readonly confirmar = inject(Confirmar);

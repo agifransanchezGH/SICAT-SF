@@ -1,4 +1,4 @@
-import { Component, DestroyRef, NgZone, inject, signal } from '@angular/core';
+import { Component, DestroyRef, NgZone, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,7 +14,8 @@ import { SicatMapa, agruparPorPunto, escapar, iconoGrupo, popupDeGrupo } from 's
 import { Api } from '../core/api';
 import { Avisos } from '../core/avisos';
 import { Catalogos } from '../core/catalogos';
-import { ESTADOS_PUBLICACION } from '../core/modelos';
+import { CategoriaNodo, ESTADOS_PUBLICACION } from '../core/modelos';
+import { PuntoMapa, contarMapa } from './conteos';
 
 const COLOR_ESTADO: Record<string, string> = { PUBLICADO: '#3f6a2e', BORRADOR: '#6b7c80', OCULTO: '#b3261e' };
 const TEXTO_ESTADO: Record<string, string> = { PUBLICADO: 'Publicado', BORRADOR: 'Borrador', OCULTO: 'Oculto' };
@@ -53,19 +54,64 @@ const TEXTO_GEO: Record<string, string> = {
         </mat-form-field>
         <mat-slide-toggle formControlName="circuitos">Circuitos</mat-slide-toggle>
       </form>
-      <div class="leyenda suave">
-        <span>{{ cantidad() }} en el mapa</span>
-        @for (e of estados; track e) { <span><i [style.background]="colores[e]"></i> {{ textoEstado[e] }}</span> }
-        <span><i class="aro"></i> Ubicación sin verificar</span>
-        <span><i class="grupo">2</i> Varios en el mismo lugar</span>
+      <div class="leyenda">
+        <span class="total" role="status">{{ cantidad() }} en el mapa</span>
+        <div class="grupo-leyenda" role="group" aria-label="Cantidad por estado; tocá uno para filtrar">
+          @for (e of estados; track e) {
+            <button type="button" class="filtro-leyenda" [class.activo]="filtros.controls.estado.value === e"
+                    [attr.aria-pressed]="filtros.controls.estado.value === e" (click)="filtrarEstado(e)"
+                    [attr.aria-label]="textoEstado[e] + ': ' + (conteos().porEstado[e] ?? 0) + (filtros.controls.estado.value === e ? '. Quitar filtro' : '. Filtrar')">
+              <i [style.background]="colores[e]" aria-hidden="true"></i> {{ textoEstado[e] }}
+              <strong>{{ conteos().porEstado[e] ?? 0 }}</strong>
+            </button>
+          }
+        </div>
+        <span class="simbolo suave"><i class="aro" aria-hidden="true"></i> Ubicación sin verificar</span>
+        <span class="simbolo suave"><i class="grupo" aria-hidden="true">2</i> Varios en el mismo lugar</span>
       </div>
+      @if (conteos().porCategoria.length || filtros.controls.categoria.value) {
+        <div class="leyenda categorias" role="group"
+             [attr.aria-label]="filtros.controls.categoria.value ? 'Cantidad por subcategoría' : 'Cantidad por categoría; tocá una para filtrar'">
+          <span class="suave etiqueta">{{ filtros.controls.categoria.value ? 'Por subcategoría:' : 'Por categoría:' }}</span>
+          @for (c of conteos().porCategoria; track c.id) {
+            <button type="button" class="filtro-leyenda" [class.activo]="filtros.controls.categoria.value === '' + c.id"
+                    [attr.aria-pressed]="filtros.controls.categoria.value === '' + c.id" (click)="filtrarCategoria(c.id)">
+              {{ c.nombre }} <strong>{{ c.cantidad }}</strong>
+            </button>
+          } @empty {
+            <span class="suave">Ninguno con oferta activa en esta categoría.</span>
+          }
+          @if (filtros.controls.categoria.value) {
+            <button type="button" class="filtro-leyenda quitar" (click)="filtros.controls.categoria.setValue('')">
+              <mat-icon aria-hidden="true">close</mat-icon> Todas las categorías
+            </button>
+          }
+        </div>
+      }
       <sicat-mapa class="tarjeta mapa" (listo)="mapa.set($event)" />
     </section>
   `,
   styles: `
     .pagina { max-width: none; height: calc(100vh - 64px); box-sizing: border-box; }
     .mapa { flex: 1; min-height: 420px; overflow: hidden; }
-    .leyenda { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-top: -8px; }
+    .leyenda { display: flex; gap: 6px 16px; flex-wrap: wrap; align-items: center; font-size: 13px; margin-top: -8px; }
+    .leyenda.categorias { margin-top: -10px; gap: 6px 8px; }
+    .total { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .grupo-leyenda { display: flex; gap: 6px; flex-wrap: wrap; }
+    .etiqueta { margin-right: 2px; }
+    /* Cada conteo es también un filtro: botón con el mismo color que los puntos del mapa. */
+    .filtro-leyenda {
+      display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 2px 10px; border-radius: 999px;
+      border: 1px solid var(--sicat-borde); background: var(--mat-sys-surface); color: var(--sicat-tinta);
+      font: inherit; cursor: pointer;
+    }
+    .filtro-leyenda strong { font-variant-numeric: tabular-nums; }
+    .filtro-leyenda:hover { background: var(--mat-sys-surface-container-low); }
+    .filtro-leyenda:focus-visible { outline: 2px solid var(--sicat-rio); outline-offset: 2px; }
+    .filtro-leyenda.activo { border-color: var(--sicat-rio); background: var(--sicat-rio-claro); }
+    .filtro-leyenda.quitar { color: var(--sicat-texto-suave); }
+    .filtro-leyenda mat-icon { font-size: 16px; width: 16px; height: 16px; }
+    .simbolo { display: inline-flex; align-items: center; gap: 6px; }
     .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; vertical-align: -1px; }
     .leyenda i.aro { background: #fff; border: 3px solid #b5832a; width: 8px; height: 8px; }
     .leyenda i.grupo { background: #16262a; color: #fff; width: 16px; height: 16px; font: 600 10px/16px sans-serif; text-align: center; font-style: normal; vertical-align: -3px; }
@@ -83,6 +129,11 @@ export class MapaPage {
   protected readonly textoEstado = TEXTO_ESTADO;
   protected readonly mapa = signal<L.Map | null>(null);
   protected readonly cantidad = signal(0);
+  /** Lo que se dibujó (ya filtrado) y el árbol de categorías: de ahí salen los conteos de la leyenda. */
+  private readonly ultimos = signal<PuntoMapa[]>([]);
+  private readonly arbol = signal<CategoriaNodo[]>([]);
+  private readonly categoriaFiltrada = signal<number | null>(null);
+  protected readonly conteos = computed(() => contarMapa(this.ultimos(), this.arbol(), this.categoriaFiltrada()));
   private readonly puntos = L.featureGroup();
   private readonly lineas = L.featureGroup();
 
@@ -90,7 +141,7 @@ export class MapaPage {
 
   constructor() {
     const destroy = inject(DestroyRef);
-    this.catalogos.arbolCategorias().subscribe();
+    this.catalogos.arbolCategorias().subscribe((a) => this.arbol.set(a));
     const mapaListo = toObservable(this.mapa).pipe(filter((m): m is L.Map => m !== null));
 
     mapaListo.pipe(takeUntilDestroyed(destroy)).subscribe((m) => this.preparar(m));
@@ -177,10 +228,25 @@ export class MapaPage {
       capa.bindPopup(g.items.length === 1 ? bloque(g.items[0]) : popupDeGrupo(g.items.map(bloque))).addTo(this.puntos);
     }
     this.cantidad.set(geo.features.length);
+    this.ultimos.set(geo.features.map((f) => (f.properties ?? {}) as PuntoMapa));
+    const cat = this.filtros.controls.categoria.value;
+    this.categoriaFiltrada.set(cat ? Number(cat) : null);
     // Sin filtros queda centrado en la ciudad (hay puntos en localidades vecinas); con filtros, encuadra los resultados.
     const f = this.filtros.getRawValue();
     if ((f.q || f.estado || f.categoria) && geo.features.length) {
       this.mapa()!.fitBounds(this.puntos.getBounds(), { padding: [30, 30], maxZoom: 16 });
     }
+  }
+
+  /** Tocar un estado de la leyenda filtra por él; tocarlo de nuevo quita el filtro. */
+  protected filtrarEstado(e: string): void {
+    const c = this.filtros.controls.estado;
+    c.setValue(c.value === e ? '' : e);
+  }
+
+  /** Tocar una categoría de la leyenda filtra por ella (y la leyenda pasa a sus subcategorías). */
+  protected filtrarCategoria(id: number): void {
+    const c = this.filtros.controls.categoria;
+    c.setValue(c.value === '' + id ? '' : '' + id);
   }
 }
