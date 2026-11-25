@@ -16,12 +16,21 @@ class MapaTest extends PruebaAbm {
         long oferente = crearOferente();
         long conPunto = crearEstablecimiento(oferente, crearLugar(-31.63, -60.70, localidad));
         crearEstablecimiento(oferente, null);
+        // categorías de sus ofertas activas: principal y adicional; la de una oferta dada de baja no cuenta
+        long principal = crearCategoria(null);
+        long adicional = crearCategoria(null);
+        long deBaja = crearCategoria(null);
+        long oferta = crearOferta(conPunto, principal);
+        put_("/ofertas/" + oferta + "/categorias", "{\"ids\":[%d]}".formatted(adicional), 200);
+        delete_("/ofertas/" + crearOferta(conPunto, deBaja), 204);
 
         String geo = get_("/mapa/establecimientos?localidadId=" + localidad, 200);
         assertThat((String) leer(geo, "$.type")).isEqualTo("FeatureCollection");
         assertThat((List<Integer>) leer(geo, "$.features[*].id")).containsExactly((int) conPunto);
         assertThat((List<Double>) leer(geo, "$.features[0].geometry.coordinates")).containsExactly(-60.70, -31.63);
         assertThat((String) leer(geo, "$.features[0].properties.estadoPublicacion")).isEqualTo("BORRADOR");
+        assertThat((List<Integer>) leer(geo, "$.features[0].properties.categorias"))
+                .containsExactlyInAnyOrder((int) principal, (int) adicional);
 
         assertThat((List<Object>) leer(get_("/mapa/establecimientos?localidadId=%d&estado=PUBLICADO".formatted(localidad), 200),
                 "$.features")).isEmpty();

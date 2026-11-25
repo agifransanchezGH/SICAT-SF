@@ -1,6 +1,11 @@
 package ar.sf.sicat.admin.mapa;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.locationtech.jts.geom.Point;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -18,6 +23,8 @@ import ar.sf.sicat.core.dominio.establecimiento.EstadoPublicacion;
 import ar.sf.sicat.core.dominio.establecimiento.Establecimiento;
 import ar.sf.sicat.core.dominio.establecimiento.EstablecimientoRepository;
 import ar.sf.sicat.core.dominio.lugar.Lugar;
+import ar.sf.sicat.core.dominio.oferta.Oferta;
+import ar.sf.sicat.core.dominio.oferta.OfertaRepository;
 
 /** GeoJSON (FeatureCollection) para el mapa del panel: incluye borradores y ocultos, no solo lo publicado. */
 @Service
@@ -32,9 +39,12 @@ public class MapaService {
     private final CircuitoRepository circuitos;
     private final CircuitoParadaRepository paradas;
     private final ObjectMapper json;
+    private final OfertaRepository ofertas;
 
     public MapaService(EstablecimientoRepository establecimientos, EstablecimientoService servicio,
-                       CircuitoRepository circuitos, CircuitoParadaRepository paradas, ObjectMapper json) {
+                       CircuitoRepository circuitos, CircuitoParadaRepository paradas, ObjectMapper json,
+                       OfertaRepository ofertas) {
+        this.ofertas = ofertas;
         this.establecimientos = establecimientos;
         this.servicio = servicio;
         this.circuitos = circuitos;
@@ -44,20 +54,31 @@ public class MapaService {
 
     /**
      * Un Point por establecimiento activo con coordenadas. Mismos filtros que el listado.
-     * Propiedades: id, nombre, estadoPublicacion, estadoGeo, lugarId, destacado.
+     * Propiedades: id, nombre, estadoPublicacion, estadoGeo, lugarId, destacado y categorias (ids de las categorías
+     * de sus ofertas activas, principal y adicionales; para contar por categoría en el mapa).
      */
     public ObjectNode establecimientos(String q, Long categoria, EstadoPublicacion estado, Long localidadId, String bbox) {
         List<Establecimiento> lista = establecimientos.findAll(
-                servicio.filtro(q, categoria, estado, null, localidadId, bbox, null, false, false, false), Sort.by("nombre"));
+                servicio.filtro(q, categoria, estado, null, localidadId, bbox, null, false, false, false), Sort.by("nombre"))
+                .stream().filter(e -> e.getLugar() != null && e.getLugar().getPunto() != null).toList();
+        // Categorías de todos los puntos en una consulta (sin N+1).
+        Map<Long, Set<Long>> categoriasDe = lista.isEmpty() ? Map.of()
+                : ofertas.conCategoriasDe(lista.stream().map(Establecimiento::getId).toList()).stream()
+                        .filter(o -> Boolean.TRUE.equals(o.getActivo()))
+                        .collect(Collectors.groupingBy(o -> o.getEstablecimiento().getId(),
+                                Collectors.flatMapping(MapaService::idsDeCategorias, Collectors.toCollection(TreeSet::new))));
         ObjectNode coleccion = coleccion();
         ArrayNode features = coleccion.putArray("features");
         for (Establecimiento e : lista) {
-            Lugar l = e.getLugar();
-            if (l != null && l.getPunto() != null) {
-                punto(features, e, l, null);
-            }
+            ObjectNode props = punto(features, e, e.getLugar(), null);
+            ArrayNode cats = props.putArray("categorias");
+            categoriasDe.getOrDefault(e.getId(), Set.of()).forEach(cats::add);
         }
         return coleccion;
+    }
+
+    private static Stream<Long> idsDeCategorias(Oferta o) {
+        return Stream.concat(Stream.of(o.getCategoria().getId()), o.getCategoriasAdicionales().stream().map(c -> c.getId()));
     }
 
     /** Los más cercanos al punto, ordenados por distancia; agrega la propiedad distanciaMetros. */
@@ -115,7 +136,7 @@ public class MapaService {
         return coleccion;
     }
 
-    private void punto(ArrayNode features, Establecimiento e, Lugar l, Integer distancia) {
+    private ObjectNode punto(ArrayNode features, Establecimiento e, Lugar l, Integer distancia) {
         ObjectNode f = feature(features, e.getId());
         ObjectNode geom = f.putObject("geometry");
         geom.put("type", "Point");
@@ -132,6 +153,7 @@ public class MapaService {
         if (distancia != null) {
             props.put("distanciaMetros", distancia);
         }
+        return props;
     }
 
     private ObjectNode coleccion() {
