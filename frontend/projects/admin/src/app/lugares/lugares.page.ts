@@ -226,18 +226,11 @@ const A_REVISAR: EstadoGeo[] = ['AUTOMATICO', 'APROXIMADO', 'NO_ENCONTRADO', 'PE
     .establecimientos .publicado { color: var(--sicat-ok); vertical-align: -2px; margin-left: 2px; }
     /* Cola en dos paneles: lista a la izquierda, mapa a la derecha (fijo mientras se recorre la lista) */
     .revision { display: grid; grid-template-columns: minmax(300px, 2fr) minmax(0, 3fr); gap: 16px; align-items: start; }
-    /*
-     * Fijo al costado y nunca más alto que la ventana (menos la barra superior y un margen): así el mapa y sus botones
-     * quedan siempre a la vista aunque la lista sea larga; lo que no entra se desplaza dentro del panel.
-     */
-    .panel-mapa {
-      position: sticky; top: 8px; padding: 16px; box-sizing: border-box;
-      display: flex; flex-direction: column; max-height: calc(100dvh - 64px - 24px);
-    }
-    .panel-mapa app-panel-ubicacion { flex: 1 1 auto; }
+    /* Fijo al costado mientras se recorre la lista: el mapa y sus botones quedan a la vista. */
+    .panel-mapa { position: sticky; top: 8px; padding: 16px; box-sizing: border-box; }
     @media (max-width: 1100px) {
       .revision { grid-template-columns: 1fr; }
-      .panel-mapa { position: static; order: -1; max-height: none; }
+      .panel-mapa { position: static; order: -1; }
     }
     .cola-lista { list-style: none; margin: 0; padding: 0; }
     .cola-lista li { display: flex; align-items: stretch; border-bottom: 1px solid var(--sicat-borde); }
